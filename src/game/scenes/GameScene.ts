@@ -75,22 +75,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createBackground(): void {
-    const sky = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT * 0.22, GAME_WIDTH, GAME_HEIGHT * 0.45, 0x87ceeb);
-    const ocean = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT * 0.62, GAME_WIDTH, GAME_HEIGHT * 0.5, 0x1e90ff);
-    const sand = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT - 50, GAME_WIDTH, 100, 0xf4d03f);
-    sky.setDepth(-3);
+    const sand = this.add.rectangle(GAME_WIDTH / 2, 50, GAME_WIDTH, 100, 0xf4d03f);
+    const ocean = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT * 0.38, GAME_WIDTH, GAME_HEIGHT * 0.5, 0x1e90ff);
+    const sky = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT * 0.78, GAME_WIDTH, GAME_HEIGHT * 0.45, 0x87ceeb);
+    sand.setDepth(-3);
     ocean.setDepth(-2);
-    sand.setDepth(-1);
+    sky.setDepth(-1);
   }
 
   private createBoard(): void {
     const wallThickness = 20;
     const boardWidth = BOARD.right - BOARD.left;
-    const boardHeight = BOARD.floor - BOARD.dangerLine;
+    const boardHeight = BOARD.spawnBase - BOARD.ceiling;
 
     const boardBg = this.add.rectangle(
       (BOARD.left + BOARD.right) / 2,
-      (BOARD.dangerLine + BOARD.floor) / 2,
+      (BOARD.ceiling + BOARD.spawnBase) / 2,
       boardWidth,
       boardHeight,
       0xffffff,
@@ -105,21 +105,28 @@ export class GameScene extends Phaser.Scene {
 
     this.matter.add.rectangle(
       (BOARD.left + BOARD.right) / 2,
-      BOARD.floor + wallThickness / 2,
+      BOARD.ceiling - wallThickness / 2,
       boardWidth,
       wallThickness,
-      { isStatic: true, label: 'floor' },
+      { isStatic: true, label: 'ceiling' },
+    );
+    this.matter.add.rectangle(
+      (BOARD.left + BOARD.right) / 2,
+      BOARD.spawnBase + wallThickness / 2,
+      boardWidth,
+      wallThickness,
+      { isStatic: true, label: 'spawn-floor' },
     );
     this.matter.add.rectangle(
       BOARD.left - wallThickness / 2,
-      (BOARD.dangerLine + BOARD.floor) / 2,
+      (BOARD.ceiling + BOARD.spawnBase) / 2,
       wallThickness,
       boardHeight + wallThickness,
       { isStatic: true, label: 'left-wall' },
     );
     this.matter.add.rectangle(
       BOARD.right + wallThickness / 2,
-      (BOARD.dangerLine + BOARD.floor) / 2,
+      (BOARD.ceiling + BOARD.spawnBase) / 2,
       wallThickness,
       boardHeight + wallThickness,
       { isStatic: true, label: 'right-wall' },
@@ -284,7 +291,7 @@ export class GameScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: popup,
-      y: y - 50,
+      y: y + 50,
       alpha: 0,
       duration: 700,
       ease: 'Cubic.easeOut',

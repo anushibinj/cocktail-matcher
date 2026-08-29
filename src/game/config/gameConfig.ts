@@ -4,9 +4,10 @@ export const GAME_HEIGHT = 844;
 export const BOARD = {
   left: 24,
   right: 366,
-  floor: 720,
+  ceiling: 180,
+  spawnBase: 720,
   dangerLine: 180,
-  spawnY: 130,
+  spawnY: 700,
 } as const;
 
 export const PHYSICS = {
