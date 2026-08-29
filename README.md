@@ -39,29 +39,45 @@ Open http://localhost:5173 and play immediately.
 
 ## Firebase Hosting Deployment
 
-Prerequisites: [Firebase CLI](https://firebase.google.com/docs/cli) installed and logged in.
+This repo is linked to Firebase project **cocktail-matcher**:
+
+| Field | Value |
+| --- | --- |
+| Project ID | `cocktail-matcher` |
+| Project number | `1032492683738` |
+| Web app ID | `1:1032492683738:web:732d28028273758d5670e3` |
+| Hosting site | `cocktail-matcher` |
+| Live URL (after deploy) | https://cocktail-matcher.web.app |
+
+### First-time setup
 
 ```bash
-# Build production assets
-npm run build
-
-# Deploy to Firebase Hosting
-firebase deploy --only hosting
+npm install
+npx firebase login
+npx firebase use cocktail-matcher
 ```
 
-The `firebase.json` is configured to serve the `dist/` folder with SPA fallback.
-
-To initialize a new Firebase project:
+If `firebase use` cannot find the project by ID, link by project number instead:
 
 ```bash
-firebase login
-firebase use --add
-# Select or create your project, alias it as "cocktail-merge"
-npm run build
-firebase deploy --only hosting
+npx firebase use --add
+# Select the project with number 1032492683738
 ```
 
-Update `.firebaserc` with your Firebase project ID if needed.
+### Deploy
+
+```bash
+npm run deploy
+```
+
+Or step by step:
+
+```bash
+npm run build
+npm run deploy:hosting
+```
+
+The `firebase.json` serves the Vite `dist/` folder with SPA fallback. Static assets are cached for one year; `index.html` is always revalidated.
 
 ## Project Structure
 
