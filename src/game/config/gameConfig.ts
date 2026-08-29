@@ -6,11 +6,29 @@ export const BOARD = {
   right: 366,
   floor: 720,
   dangerLine: 180,
+  spawnY: 130,
 } as const;
 
 export const PHYSICS = {
-  restitution: 0.25,
-  friction: 0.08,
-  frictionAir: 0.02,
+  gravity: 1.2,
+  restitution: 0.22,
+  friction: 0.12,
+  frictionAir: 0.018,
   density: 0.002,
+} as const;
+
+export const SPAWN = {
+  weights: [
+    { level: 0, weight: 55 },
+    { level: 1, weight: 30 },
+    { level: 2, weight: 15 },
+  ],
+} as const;
+
+export const GAME_OVER = {
+  gracePeriodMs: 2000,
+} as const;
+
+export const UI = {
+  headerHeight: 120,
 } as const;

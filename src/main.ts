@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
 import { BootScene } from './game/scenes/BootScene';
+import { MenuScene } from './game/scenes/MenuScene';
 import { GameScene } from './game/scenes/GameScene';
-
-const GAME_WIDTH = 390;
-const GAME_HEIGHT = 844;
+import { GAME_HEIGHT, GAME_WIDTH, PHYSICS } from './game/config/gameConfig';
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -18,9 +17,9 @@ new Phaser.Game({
   physics: {
     default: 'matter',
     matter: {
-      gravity: { x: 0, y: 1.2 },
+      gravity: { x: 0, y: PHYSICS.gravity },
       debug: false,
     },
   },
-  scene: [BootScene, GameScene],
+  scene: [BootScene, MenuScene, GameScene],
 });
