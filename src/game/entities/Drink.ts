@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { getDrinkByLevel } from '../data/drinks';
-import { BOARD, PHYSICS } from '../config/gameConfig';
+import { BOARD, PHYSICS, GAME_OVER } from '../config/gameConfig';
 
 export type DrinkState = 'preview' | 'dropped' | 'merging';
 
@@ -49,6 +49,16 @@ export class Drink extends Phaser.Physics.Matter.Image {
   }
 
   isAboveDangerLine(): boolean {
+    if (this.state !== 'dropped') {
+      return false;
+    }
+
+    const body = this.body as MatterJS.BodyType;
+    const speed = Math.hypot(body.velocity?.x ?? 0, body.velocity?.y ?? 0);
+    if (speed > GAME_OVER.settledSpeedThreshold) {
+      return false;
+    }
+
     return this.y - this.radius < BOARD.dangerLine;
   }
 

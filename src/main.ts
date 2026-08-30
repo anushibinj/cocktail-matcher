@@ -17,7 +17,7 @@ new Phaser.Game({
   physics: {
     default: 'matter',
     matter: {
-      gravity: { x: 0, y: -PHYSICS.gravity },
+      gravity: { x: 0, y: PHYSICS.gravity },
       debug: false,
     },
   },

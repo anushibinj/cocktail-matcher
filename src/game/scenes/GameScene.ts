@@ -105,17 +105,10 @@ export class GameScene extends Phaser.Scene {
 
     this.matter.add.rectangle(
       (BOARD.left + BOARD.right) / 2,
-      BOARD.ceiling - wallThickness / 2,
-      boardWidth,
-      wallThickness,
-      { isStatic: true, label: 'ceiling' },
-    );
-    this.matter.add.rectangle(
-      (BOARD.left + BOARD.right) / 2,
       BOARD.spawnBase + wallThickness / 2,
       boardWidth,
       wallThickness,
-      { isStatic: true, label: 'spawn-floor' },
+      { isStatic: true, label: 'floor' },
     );
     this.matter.add.rectangle(
       BOARD.left - wallThickness / 2,
@@ -291,7 +284,7 @@ export class GameScene extends Phaser.Scene {
 
     this.tweens.add({
       targets: popup,
-      y: y + 50,
+      y: y - 50,
       alpha: 0,
       duration: 700,
       ease: 'Cubic.easeOut',

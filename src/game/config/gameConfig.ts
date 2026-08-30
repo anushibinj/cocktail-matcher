@@ -28,6 +28,7 @@ export const SPAWN = {
 
 export const GAME_OVER = {
   gracePeriodMs: 2000,
+  settledSpeedThreshold: 0.8,
 } as const;
 
 export const UI = {
