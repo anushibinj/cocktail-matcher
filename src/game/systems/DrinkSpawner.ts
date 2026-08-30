@@ -29,7 +29,7 @@ export class DrinkSpawner {
     this.guidanceGfx = this.scene.add.graphics();
     this.guidanceGfx.setDepth(5);
 
-    // Aiming preview sprite (pure visual, no physics)
+    // Aiming preview sprite (at bottom launch line)
     this.previewSprite = this.scene.add.sprite(
       GAME_CONFIG.BOARD.CENTER_X,
       GAME_CONFIG.SPAWN_Y,
@@ -66,7 +66,7 @@ export class DrinkSpawner {
 
     this.scene.input.on('pointerup', () => {
       if (!this.isEnabled) return;
-      this.dropCurrentDrink();
+      this.launchCurrentDrink();
     });
   }
 
@@ -88,35 +88,35 @@ export class DrinkSpawner {
     }
 
     const def = getDrinkByLevel(this.currentLevel);
-    const startY = GAME_CONFIG.SPAWN_Y + def.radius + 6;
-    const endY = GAME_CONFIG.BOARD.FLOOR_Y;
+    const startY = GAME_CONFIG.SPAWN_Y - def.radius - 6;
+    const topY = GAME_CONFIG.BOARD.TOP;
 
-    this.guidanceGfx.lineStyle(2, 0xffffff, 0.45);
-    for (let y = startY; y < endY; y += 16) {
+    this.guidanceGfx.lineStyle(2.5, 0xffffff, 0.55);
+    for (let y = startY; y > topY; y -= 16) {
       this.guidanceGfx.lineBetween(
         this.currentTargetX,
         y,
         this.currentTargetX,
-        Math.min(y + 8, endY)
+        Math.max(y - 8, topY)
       );
     }
   }
 
-  private dropCurrentDrink(): void {
+  private launchCurrentDrink(): void {
     if (this.isCoolingDown || !this.isEnabled || !this.previewSprite.visible) return;
 
     this.isCoolingDown = true;
     this.previewSprite.setVisible(false);
     this.guidanceGfx.clear();
 
-    // Spawn the real physics drink
+    // Spawn the real physics drink and launch UPWARDS
     const drink = new Drink(
       this.scene,
       this.currentTargetX,
       GAME_CONFIG.SPAWN_Y,
       this.currentLevel
     );
-    drink.setVelocity(0, 2.5);
+    drink.setVelocity(0, -6.5); // Fast smooth slide up the table
 
     AudioManager.getInstance().playDrop();
 
@@ -124,7 +124,7 @@ export class DrinkSpawner {
       this.onDrinkDropped(drink);
     }
 
-    // Cooldown before next drink appears
+    // Cooldown before next drink appears at launcher
     this.scene.time.delayedCall(GAME_CONFIG.DROP_COOLDOWN_MS, () => {
       if (this.isEnabled) {
         this.currentLevel = this.nextLevel;
@@ -155,7 +155,7 @@ export class DrinkSpawner {
       targets: this.previewSprite,
       scaleX: 1,
       scaleY: 1,
-      duration: 220,
+      duration: 200,
       ease: 'Back.easeOut',
       onUpdate: () => {
         this.drawGuidanceLine();

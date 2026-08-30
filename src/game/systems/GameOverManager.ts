@@ -23,17 +23,18 @@ export class GameOverManager {
     for (const drink of droppedDrinks) {
       if (!drink.active || drink.isMerging || !drink.isDropped) continue;
 
-      const topY = drink.getTopY();
+      const bottomY = drink.getBottomY();
       const velocityY = drink.body ? drink.body.velocity.y : 0;
       const velocityX = drink.body ? drink.body.velocity.x : 0;
       const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
 
-      // Only evaluate drinks that are resting or nearly resting above the danger line,
-      // and not currently dropping down from the spawner
+      // In upward layout: Drinks stack from the top (TOP_Y).
+      // If a resting/settled drink's bottom exceeds DANGER_LINE_Y (overflowing towards bottom launcher),
+      // and it's not a newly launched drink swiftly sliding up (velocityY < -1.0)
       if (
-        drink.y > GAME_CONFIG.SPAWN_Y + 60 &&
-        topY < GAME_CONFIG.DANGER_LINE_Y &&
-        speed < 1.0
+        drink.y < GAME_CONFIG.SPAWN_Y - 40 &&
+        bottomY > GAME_CONFIG.DANGER_LINE_Y &&
+        speed < 1.2
       ) {
         hasDrinkInDanger = true;
         break;

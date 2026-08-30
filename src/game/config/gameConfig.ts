@@ -5,30 +5,31 @@ export const GAME_CONFIG = {
   WIDTH: 720,
   HEIGHT: 1280,
 
-  // Board Container Geometry
+  // Board / Table Container Geometry (Upward Merge Layout)
   BOARD: {
     WIDTH: 580,
-    HEIGHT: 780,
+    HEIGHT: 860,
     CENTER_X: 360,
-    BOTTOM_Y: 1120,
+    TOP_Y: 200,
+    BOTTOM_Y: 1080,
     WALL_THICKNESS: 24,
     CORNER_RADIUS: 28,
-    // Derived bounds
+    // Bounds
     get LEFT(): number { return this.CENTER_X - this.WIDTH / 2; },     // 70
     get RIGHT(): number { return this.CENTER_X + this.WIDTH / 2; },   // 650
-    get TOP(): number { return this.BOTTOM_Y - this.HEIGHT; },         // 340
-    get FLOOR_Y(): number { return this.BOTTOM_Y; }                    // 1120
+    get TOP(): number { return this.TOP_Y; },                          // 200
+    get BOTTOM(): number { return this.BOTTOM_Y; }                     // 1080
   },
 
-  // Danger & Spawning Heights
-  DANGER_LINE_Y: 390,
-  SPAWN_Y: 250,
-  DROP_COOLDOWN_MS: 500,
+  // Launcher & Danger Heights (Upward Layout: Launch from Bottom, Stack at Top)
+  SPAWN_Y: 1010,
+  DANGER_LINE_Y: 890,
+  DROP_COOLDOWN_MS: 450,
   DANGER_GRACE_PERIOD_MS: 2000,
 
-  // Physics Tuning (Matter.js)
+  // Physics Tuning (Negative Gravity = Upward sliding)
   PHYSICS: {
-    GRAVITY_Y: 1.7,
+    GRAVITY_Y: -1.7,
     DEFAULT_RESTITUTION: 0.15,
     DEFAULT_FRICTION: 0.08,
     DEFAULT_FRICTION_AIR: 0.002,

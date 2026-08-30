@@ -891,29 +891,63 @@ export class AssetGenerator {
     canvas.height = height;
     const ctx = canvas.getContext('2d')!;
 
-    // 1. Sunset / Tropical sky gradient
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
-    skyGrad.addColorStop(0, '#1d1135');     // Deep twilight indigo
-    skyGrad.addColorStop(0.25, '#3b185f');  // Magenta violet
-    skyGrad.addColorStop(0.55, '#a12568');  // Tropical ruby
-    skyGrad.addColorStop(0.75, '#fec260');  // Warm sunset amber
-    skyGrad.addColorStop(0.88, '#1e5f74');  // Turquoise ocean horizon
-    skyGrad.addColorStop(1, '#1d2a44');     // Deep sea base
+    // 1. Tropical Beach Sky (Sunny Caribbean Gradient)
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.4);
+    skyGrad.addColorStop(0, '#38bdf8');     // Bright azure sky
+    skyGrad.addColorStop(0.6, '#7dd3fc');  // Soft sky cyan
+    skyGrad.addColorStop(1, '#bae6fd');    // Horizon glow
     ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, width, height * 0.4);
 
-    // 2. Distant sunset sun glow
-    const sunGrad = ctx.createRadialGradient(width / 2, height * 0.45, 20, width / 2, height * 0.45, 260);
-    sunGrad.addColorStop(0, 'rgba(255, 240, 180, 0.4)');
-    sunGrad.addColorStop(0.5, 'rgba(255, 120, 80, 0.15)');
-    sunGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = sunGrad;
-    ctx.fillRect(0, 0, width, height);
+    // 2. Turquoise Ocean Strip
+    const oceanGrad = ctx.createLinearGradient(0, height * 0.15, 0, height * 0.35);
+    oceanGrad.addColorStop(0, '#0284c7');
+    oceanGrad.addColorStop(0.5, '#0ea5e9');
+    oceanGrad.addColorStop(1, '#38bdf8');
+    ctx.fillStyle = oceanGrad;
+    ctx.fillRect(0, height * 0.15, width, height * 0.2);
 
-    // 3. Subtle palm tree silhouettes in corners
-    ctx.fillStyle = 'rgba(15, 10, 30, 0.45)';
-    this.drawPalmSilhouette(ctx, 30, 140, 110, 1);
-    this.drawPalmSilhouette(ctx, width - 30, 120, 100, -1);
+    // 3. Golden Beach Sand (Lower half)
+    const sandGrad = ctx.createLinearGradient(0, height * 0.3, 0, height);
+    sandGrad.addColorStop(0, '#fef08a');
+    sandGrad.addColorStop(0.4, '#fde047');
+    sandGrad.addColorStop(1, '#eab308');
+    ctx.fillStyle = sandGrad;
+    ctx.fillRect(0, height * 0.3, width, height * 0.7);
+
+    // 4. Palm Trees on Left & Right
+    ctx.fillStyle = 'rgba(22, 101, 52, 0.85)';
+    this.drawPalmSilhouette(ctx, 35, 120, 110, 1);
+    this.drawPalmSilhouette(ctx, width - 35, 110, 100, -1);
+
+    // 5. Striped Beach Lounger Chairs (Left and Right of the wooden table)
+    // Left Red-Striped Chair
+    this.drawBeachChair(ctx, 22, height * 0.48, '#ef4444', '#fee2e2', -0.15);
+    this.drawBeachChair(ctx, 22, height * 0.72, '#ef4444', '#fee2e2', -0.1);
+
+    // Right Blue-Striped Chair
+    this.drawBeachChair(ctx, width - 22, height * 0.48, '#0284c7', '#e0f2fe', 0.15);
+    this.drawBeachChair(ctx, width - 22, height * 0.72, '#0284c7', '#e0f2fe', 0.1);
+
+    // 6. Beach Canopy Umbrella Awning at Top
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width, 0);
+    ctx.lineTo(width, 110);
+    ctx.quadraticCurveTo(width / 2, 135, 0, 110);
+    ctx.closePath();
+    ctx.fill();
+
+    // Canopy Scallops
+    ctx.fillStyle = '#f87171';
+    for (let i = 0; i < 6; i++) {
+      const sx = i * (width / 6);
+      const sw = width / 6;
+      if (i % 2 === 1) {
+        ctx.fillRect(sx, 0, sw, 100);
+      }
+    }
 
     scene.textures.addCanvas('bg_tropical', canvas);
   }
@@ -930,6 +964,7 @@ export class AssetGenerator {
     ctx.scale(dir, 1);
 
     // Trunk
+    ctx.fillStyle = '#a16207';
     ctx.beginPath();
     ctx.moveTo(-10, size);
     ctx.quadraticCurveTo(15, size * 0.4, 0, 0);
@@ -939,6 +974,7 @@ export class AssetGenerator {
     ctx.fill();
 
     // Palm fronds
+    ctx.fillStyle = '#15803d';
     for (let i = 0; i < 5; i++) {
       const angle = (i * 0.3) - 0.6;
       ctx.save();
@@ -949,6 +985,39 @@ export class AssetGenerator {
       ctx.quadraticCurveTo(size * 0.5, 0, 0, 0);
       ctx.fill();
       ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  private static drawBeachChair(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    stripeColor: string,
+    baseColor: string,
+    angle: number
+  ): void {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    const w = 46;
+    const h = 130;
+
+    // Wooden Frame
+    ctx.fillStyle = '#a16207';
+    ctx.fillRect(-w / 2 - 3, -h / 2, 6, h);
+    ctx.fillRect(w / 2 - 3, -h / 2, 6, h);
+
+    // Fabric Back
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(-w / 2 + 3, -h / 2 + 4, w - 6, h - 8);
+
+    // Stripes
+    ctx.fillStyle = stripeColor;
+    for (let i = 0; i < 6; i++) {
+      ctx.fillRect(-w / 2 + 3, -h / 2 + 10 + i * 20, w - 6, 9);
     }
 
     ctx.restore();

@@ -3,28 +3,38 @@ import { GAME_CONFIG } from '../config/gameConfig';
 
 export class Board {
   private scene: Phaser.Scene;
-  private dangerLineGraphic: Phaser.GameObjects.TileSprite | Phaser.GameObjects.Sprite;
-  private containerGlow!: Phaser.GameObjects.Graphics;
+  private dangerLineGraphic: Phaser.GameObjects.Sprite;
+  private tableGlow!: Phaser.GameObjects.Graphics;
   private isDangerFlashing: boolean = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
 
     this.createPhysicsWalls();
-    this.createVisualContainer();
+    this.createVisualTable();
     this.dangerLineGraphic = this.createDangerLine();
   }
 
   private createPhysicsWalls(): void {
-    const { LEFT, RIGHT, FLOOR_Y, HEIGHT, CENTER_X, WALL_THICKNESS } = GAME_CONFIG.BOARD;
-    const centerY = FLOOR_Y - HEIGHT / 2;
+    const { LEFT, RIGHT, TOP, BOTTOM, WALL_THICKNESS, CENTER_X } = GAME_CONFIG.BOARD;
+    const height = BOTTOM - TOP;
+    const centerY = (TOP + BOTTOM) / 2;
+
+    // Top Wall (The back of the table where glasses rest)
+    this.scene.matter.add.rectangle(
+      CENTER_X,
+      TOP - WALL_THICKNESS / 2,
+      RIGHT - LEFT + WALL_THICKNESS * 2,
+      WALL_THICKNESS,
+      { isStatic: true, label: 'wall_top', friction: 0.15, restitution: 0.1 }
+    );
 
     // Left Wall
     this.scene.matter.add.rectangle(
       LEFT - WALL_THICKNESS / 2,
       centerY,
       WALL_THICKNESS,
-      HEIGHT + 100,
+      height + 100,
       { isStatic: true, label: 'wall_left', friction: 0.1, restitution: 0.1 }
     );
 
@@ -33,38 +43,31 @@ export class Board {
       RIGHT + WALL_THICKNESS / 2,
       centerY,
       WALL_THICKNESS,
-      HEIGHT + 100,
+      height + 100,
       { isStatic: true, label: 'wall_right', friction: 0.1, restitution: 0.1 }
-    );
-
-    // Floor
-    this.scene.matter.add.rectangle(
-      CENTER_X,
-      FLOOR_Y + WALL_THICKNESS / 2,
-      RIGHT - LEFT + WALL_THICKNESS * 2,
-      WALL_THICKNESS,
-      { isStatic: true, label: 'floor', friction: 0.2, restitution: 0.1 }
     );
   }
 
-  private createVisualContainer(): void {
-    const { LEFT, TOP, FLOOR_Y, WIDTH, HEIGHT } = GAME_CONFIG.BOARD;
+  private createVisualTable(): void {
+    const { LEFT, TOP, WIDTH, HEIGHT } = GAME_CONFIG.BOARD;
 
-    // 1. Wooden bar counter under the container
-    const woodGfx = this.scene.add.graphics();
-    woodGfx.fillStyle(0x3e2723, 0.95);
-    woodGfx.fillRoundedRect(LEFT - 28, FLOOR_Y - 4, WIDTH + 56, 32, 8);
-    woodGfx.fillStyle(0x5d4037, 0.9);
-    woodGfx.fillRoundedRect(LEFT - 20, FLOOR_Y, WIDTH + 40, 10, 4);
+    // 1. Wooden Table Surface with Plank Lines
+    const tableGfx = this.scene.add.graphics();
+    // Warm blonde wooden beach bar table
+    tableGfx.fillStyle(0xedd3a8, 0.95);
+    tableGfx.fillRoundedRect(LEFT, TOP, WIDTH, HEIGHT, { tl: 28, tr: 28, bl: 16, br: 16 });
 
-    // 2. Glass Jar / Container Backdrop
-    const glassBg = this.scene.add.graphics();
-    glassBg.fillStyle(0xffffff, 0.05);
-    glassBg.fillRoundedRect(LEFT, TOP, WIDTH, HEIGHT, { tl: 0, tr: 0, bl: 24, br: 24 });
+    // Subtle wooden plank grooves
+    tableGfx.lineStyle(1.5, 0xcfb284, 0.7);
+    const plankWidth = WIDTH / 5;
+    for (let i = 1; i < 5; i++) {
+      const px = LEFT + i * plankWidth;
+      tableGfx.lineBetween(px, TOP + 10, px, TOP + HEIGHT - 10);
+    }
 
-    // 3. Container Outline & Glow
-    this.containerGlow = this.scene.add.graphics();
-    this.updateContainerGlow(false);
+    // 2. Table Wooden Border & Rails
+    this.tableGlow = this.scene.add.graphics();
+    this.updateTableGlow(false);
   }
 
   private createDangerLine(): Phaser.GameObjects.Sprite {
@@ -86,24 +89,24 @@ export class Board {
         yoyo: true,
         repeat: -1
       });
-      this.updateContainerGlow(true);
+      this.updateTableGlow(true);
     } else {
       this.scene.tweens.killTweensOf(this.dangerLineGraphic);
       this.dangerLineGraphic.setAlpha(0.65);
-      this.updateContainerGlow(false);
+      this.updateTableGlow(false);
     }
   }
 
-  private updateContainerGlow(isAlert: boolean): void {
+  private updateTableGlow(isAlert: boolean): void {
     const { LEFT, TOP, WIDTH, HEIGHT } = GAME_CONFIG.BOARD;
-    this.containerGlow.clear();
+    this.tableGlow.clear();
 
-    // Glass rim stroke
-    this.containerGlow.lineStyle(4, isAlert ? 0xff4444 : 0x48cae4, isAlert ? 0.9 : 0.6);
-    this.containerGlow.strokeRoundedRect(LEFT, TOP, WIDTH, HEIGHT, { tl: 0, tr: 0, bl: 24, br: 24 });
+    // Outer wooden border rail
+    this.tableGlow.lineStyle(8, isAlert ? 0xff4444 : 0xaa7c45, isAlert ? 0.9 : 0.95);
+    this.tableGlow.strokeRoundedRect(LEFT, TOP, WIDTH, HEIGHT, { tl: 28, tr: 28, bl: 16, br: 16 });
 
-    // Inner shine stroke
-    this.containerGlow.lineStyle(2, 0xffffff, 0.3);
-    this.containerGlow.strokeRoundedRect(LEFT + 3, TOP + 3, WIDTH - 6, HEIGHT - 6, { tl: 0, tr: 0, bl: 20, br: 20 });
+    // Inner highlight stroke
+    this.tableGlow.lineStyle(2, isAlert ? 0xffaaaa : 0xffe8c6, 0.6);
+    this.tableGlow.strokeRoundedRect(LEFT + 4, TOP + 4, WIDTH - 8, HEIGHT - 8, { tl: 24, tr: 24, bl: 12, br: 12 });
   }
 }

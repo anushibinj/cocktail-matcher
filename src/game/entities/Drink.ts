@@ -57,4 +57,8 @@ export class Drink extends Phaser.Physics.Matter.Sprite {
   public getTopY(): number {
     return this.y - this.drinkDef.radius;
   }
+
+  public getBottomY(): number {
+    return this.y + this.drinkDef.radius;
+  }
 }
