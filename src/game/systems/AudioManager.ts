@@ -8,6 +8,8 @@ export class AudioManager {
   private musicGain: GainNode | null = null;
   private bgmInterval: number | null = null;
   private isBgmPlaying: boolean = false;
+  private clinkAudioBuffer: AudioBuffer | null = null;
+  private lastClinkTime: number = 0;
 
   private constructor() {
     // Lazy initialize on first interaction
@@ -30,12 +32,15 @@ export class AudioManager {
       this.masterGain.connect(this.ctx.destination);
 
       this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.setValueAtTime(SaveManager.getInstance().getSoundEnabled() ? 0.7 : 0, this.ctx.currentTime);
+      this.sfxGain.gain.setValueAtTime(SaveManager.getInstance().getSoundEnabled() ? 0.75 : 0, this.ctx.currentTime);
       this.sfxGain.connect(this.masterGain);
 
       this.musicGain = this.ctx.createGain();
       this.musicGain.gain.setValueAtTime(SaveManager.getInstance().getMusicEnabled() ? 0.18 : 0, this.ctx.currentTime);
       this.musicGain.connect(this.masterGain);
+
+      // Try loading custom clink.mp3 from assets/audio/ if present
+      this.loadCustomAudio();
 
       const unlock = () => {
         if (this.ctx && this.ctx.state === 'suspended') {
@@ -57,10 +62,23 @@ export class AudioManager {
     }
   }
 
+  private async loadCustomAudio(): Promise<void> {
+    if (!this.ctx) return;
+    try {
+      const response = await fetch('./assets/audio/clink.mp3');
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        this.clinkAudioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+      }
+    } catch {
+      // Custom audio file not found or fetch skipped, fallback to synthesized crystal clink
+    }
+  }
+
   public setSoundEnabled(enabled: boolean): void {
     SaveManager.getInstance().setSoundEnabled(enabled);
     if (this.sfxGain && this.ctx) {
-      this.sfxGain.gain.setValueAtTime(enabled ? 0.7 : 0, this.ctx.currentTime);
+      this.sfxGain.gain.setValueAtTime(enabled ? 0.75 : 0, this.ctx.currentTime);
     }
   }
 
@@ -74,6 +92,84 @@ export class AudioManager {
     } else {
       this.stopBgm();
     }
+  }
+
+  // Authentic crystal cocktail glass clink sound
+  public playGlassClink(intensity: number = 0.6): void {
+    if (!this.canPlaySfx()) return;
+
+    const now = Date.now();
+    // Throttle to prevent micro-collision spam
+    if (now - this.lastClinkTime < 60) return;
+    this.lastClinkTime = now;
+
+    // If custom clink.mp3 was loaded, play that buffer
+    if (this.clinkAudioBuffer && this.ctx) {
+      const source = this.ctx.createBufferSource();
+      const gain = this.ctx.createGain();
+      source.buffer = this.clinkAudioBuffer;
+      const vol = Math.min(1.0, Math.max(0.2, intensity));
+      gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+      source.connect(gain);
+      gain.connect(this.sfxGain!);
+      source.start();
+      return;
+    }
+
+    // Synthesize high-resolution crystal glass clink with harmonic overtones
+    const audioNow = this.ctx!.currentTime;
+    const baseFreq = 2200 + (Math.random() * 400 - 200);
+
+    // Harmonic modes of a glass resonance: fundamental, ~1.6x, ~2.35x, ~3.2x
+    const modes = [
+      { freq: baseFreq, decay: 0.28, type: 'sine' as OscillatorType, vol: 0.45 },
+      { freq: baseFreq * 1.58, decay: 0.18, type: 'sine' as OscillatorType, vol: 0.28 },
+      { freq: baseFreq * 2.34, decay: 0.11, type: 'triangle' as OscillatorType, vol: 0.16 },
+      { freq: baseFreq * 3.18, decay: 0.05, type: 'sine' as OscillatorType, vol: 0.09 }
+    ];
+
+    const scaledIntensity = Math.min(1.0, Math.max(0.25, intensity));
+
+    modes.forEach((mode) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = mode.type;
+      osc.frequency.setValueAtTime(mode.freq, audioNow);
+
+      const peakVol = mode.vol * scaledIntensity;
+      gain.gain.setValueAtTime(peakVol, audioNow);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioNow + mode.decay);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain!);
+
+      osc.start(audioNow);
+      osc.stop(audioNow + mode.decay + 0.02);
+    });
+  }
+
+  // Soft wood/wall bounce
+  public playWallTap(intensity: number = 0.3): void {
+    if (!this.canPlaySfx()) return;
+    const now = this.ctx!.currentTime;
+    const osc = this.ctx!.createOscillator();
+    const gain = this.ctx!.createGain();
+
+    const freq = 450 + Math.random() * 150;
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.5, now + 0.06);
+
+    const vol = Math.min(0.25, Math.max(0.03, intensity * 0.2));
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain!);
+
+    osc.start(now);
+    osc.stop(now + 0.07);
   }
 
   // Play a soft bubble drop sound
@@ -95,29 +191,6 @@ export class AudioManager {
 
     osc.start(now);
     osc.stop(now + 0.13);
-  }
-
-  // Play subtle collision clink
-  public playCollision(intensity: number = 0.5): void {
-    if (!this.canPlaySfx()) return;
-    const now = this.ctx!.currentTime;
-    const osc = this.ctx!.createOscillator();
-    const gain = this.ctx!.createGain();
-
-    const freq = 600 + Math.random() * 300;
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.7, now + 0.05);
-
-    const vol = Math.min(0.2, Math.max(0.02, intensity * 0.15));
-    gain.gain.setValueAtTime(vol, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain!);
-
-    osc.start(now);
-    osc.stop(now + 0.06);
   }
 
   // Musical notes for merges (C Pentatonic / Diatonic ascending scale)
