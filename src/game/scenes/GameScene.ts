@@ -6,6 +6,7 @@ import { DrinkSpawner } from '../systems/DrinkSpawner';
 import { MergeManager } from '../systems/MergeManager';
 import { ScoreManager } from '../systems/ScoreManager';
 import { GameOverManager } from '../systems/GameOverManager';
+import { OrderManager } from '../systems/OrderManager';
 import { HUD } from '../ui/HUD';
 import { GameOverModal } from '../ui/GameOverModal';
 import { PauseModal } from '../ui/PauseModal';
@@ -17,6 +18,7 @@ export class GameScene extends Phaser.Scene {
   public mergeManager!: MergeManager;
   private scoreManager!: ScoreManager;
   private gameOverManager!: GameOverManager;
+  private orderManager!: OrderManager;
   private hud!: HUD;
   private gameOverModal!: GameOverModal;
   private pauseModal!: PauseModal;
@@ -66,17 +68,30 @@ export class GameScene extends Phaser.Scene {
       }
     );
 
-    // 5. Game Over Manager
+    // 5. To-Go Orders Manager (Hanging tickets at top)
+    this.orderManager = new OrderManager(
+      this,
+      this.scoreManager,
+      (_order, drink) => {
+        const idx = this.droppedDrinks.indexOf(drink);
+        if (idx !== -1) {
+          this.droppedDrinks.splice(idx, 1);
+        }
+      }
+    );
+    this.orderManager.init();
+
+    // 6. Game Over Manager
     this.gameOverManager = new GameOverManager(this.board, () => {
       this.handleGameOver();
     });
 
-    // 6. HUD
+    // 7. HUD
     this.hud = new HUD(this, () => {
       this.handlePause();
     });
 
-    // 7. Modals
+    // 8. Modals
     this.gameOverModal = new GameOverModal(
       this,
       () => this.restartGame(),
@@ -91,7 +106,7 @@ export class GameScene extends Phaser.Scene {
       () => this.hud.updateAudioIcons()
     );
 
-    // 8. Drink Spawner
+    // 9. Drink Spawner
     this.spawner = new DrinkSpawner(
       this,
       (nextLevel) => {
@@ -113,6 +128,9 @@ export class GameScene extends Phaser.Scene {
 
     // Filter out destroyed or inactive drinks
     this.droppedDrinks = this.droppedDrinks.filter(d => d && d.active && !d.isMerging);
+
+    // Check To-Go Orders fulfillment
+    this.orderManager.checkForMatchingOrders(this.droppedDrinks);
 
     // Check danger line overflow
     this.gameOverManager.update(delta, this.droppedDrinks);
@@ -156,6 +174,7 @@ export class GameScene extends Phaser.Scene {
 
     this.isGameActive = true;
     this.scoreManager.reset();
+    this.orderManager.reset();
     this.gameOverManager.reset();
     this.spawner.reset();
     this.hud.updateScore(0, this.scoreManager.getBestScore());

@@ -257,6 +257,47 @@ export class AudioManager {
     }
   }
 
+  public playOrderComplete(): void {
+    if (!this.canPlaySfx()) return;
+    const now = this.ctx!.currentTime;
+
+    // Fast cheerful arpeggio fanfare (C5, E5, G5, C6) + bell ping
+    const chord = [523.25, 659.25, 783.99, 1046.50];
+    chord.forEach((freq, i) => {
+      const startTime = now + i * 0.07;
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.4, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain!);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.36);
+    });
+
+    // High cash-register chime ping
+    setTimeout(() => {
+      if (!this.canPlaySfx()) return;
+      const subNow = this.ctx!.currentTime;
+      const ping = this.ctx!.createOscillator();
+      const pingGain = this.ctx!.createGain();
+      ping.type = 'sine';
+      ping.frequency.setValueAtTime(2093, subNow); // C7 bell
+      pingGain.gain.setValueAtTime(0.35, subNow);
+      pingGain.gain.exponentialRampToValueAtTime(0.0001, subNow + 0.45);
+      ping.connect(pingGain);
+      pingGain.connect(this.sfxGain!);
+      ping.start(subNow);
+      ping.stop(subNow + 0.46);
+    }, 280);
+  }
+
   public playScorePopup(): void {
     if (!this.canPlaySfx()) return;
     const now = this.ctx!.currentTime;
