@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1d1135" />
+      <stop offset="50%" stop-color="#a12568" />
+      <stop offset="100%" stop-color="#fec260" />
+    </linearGradient>
+    <linearGradient id="liquidGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff006e" />
+      <stop offset="100%" stop-color="#ffbe0b" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="40" fill="url(#bgGrad)" />
+  
+  <!-- Glass shape -->
+  <path d="M50 45 L142 45 L114 125 A 20 20 0 0 1 78 125 Z" fill="url(#liquidGrad)" stroke="#ffffff" stroke-width="4" />
+  <line x1="96" y1="128" x2="96" y2="160" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+  <line x1="68" y1="160" x2="124" y2="160" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+  
+  <!-- Garnish: Lime & Umbrella -->
+  <circle cx="140" cy="45" r="18" fill="#a7c957" stroke="#ffffff" stroke-width="3" />
+  <circle cx="140" cy="45" r="14" fill="#d9ed92" />
+  
+  <!-- Cocktail Straw -->
+  <line x1="75" y1="110" x2="128" y2="22" stroke="#ffbe0b" stroke-width="6" stroke-linecap="round" />
+  
+  <!-- Sparkles -->
+  <polygon points="45,35 48,22 52,35 65,38 52,42 48,55 45,42 32,38" fill="#ffffff" />
+  <polygon points="150,110 152,102 155,110 163,112 155,114 152,122 150,114 142,112" fill="#ffd166" />
+</svg>
