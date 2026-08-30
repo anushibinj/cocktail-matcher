@@ -109,14 +109,14 @@ export class DrinkSpawner {
     this.previewSprite.setVisible(false);
     this.guidanceGfx.clear();
 
-    // Spawn the real physics drink and launch UPWARDS
+    // Spawn the real physics drink and launch UPWARDS with calm, steady velocity
     const drink = new Drink(
       this.scene,
       this.currentTargetX,
       GAME_CONFIG.SPAWN_Y,
       this.currentLevel
     );
-    drink.setVelocity(0, -6.5); // Fast smooth slide up the table
+    drink.setVelocity(0, -3.2); // Smooth controlled glide up the table
 
     AudioManager.getInstance().playDrop();
 

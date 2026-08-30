@@ -102,11 +102,11 @@ export class MergeManager {
     const nextLevel = d1.level + 1;
     const nextDef = getDrinkByLevel(nextLevel);
 
-    // Calculate inherited velocity
+    // Calculate calm inherited velocity
     const v1 = d1.body?.velocity || { x: 0, y: 0 };
     const v2 = d2.body?.velocity || { x: 0, y: 0 };
-    const avgVx = (v1.x + v2.x) / 2;
-    const avgVy = Math.min(-1.5, (v1.y + v2.y) / 2); // subtle upward pop
+    const avgVx = (v1.x + v2.x) / 4;
+    const avgVy = Math.min(-0.5, (v1.y + v2.y) / 4);
 
     // Remove old drinks from tracking and destroy
     if (this.onDrinkRemoved) {

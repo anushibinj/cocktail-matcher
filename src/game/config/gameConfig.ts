@@ -27,12 +27,12 @@ export const GAME_CONFIG = {
   DROP_COOLDOWN_MS: 450,
   DANGER_GRACE_PERIOD_MS: 2000,
 
-  // Physics Tuning (Negative Gravity = Upward sliding)
+  // Physics Tuning (Calm, soft-settling upward sliding)
   PHYSICS: {
-    GRAVITY_Y: -1.7,
-    DEFAULT_RESTITUTION: 0.15,
-    DEFAULT_FRICTION: 0.08,
-    DEFAULT_FRICTION_AIR: 0.002,
+    GRAVITY_Y: -1.2,
+    DEFAULT_RESTITUTION: 0.05,
+    DEFAULT_FRICTION: 0.15,
+    DEFAULT_FRICTION_AIR: 0.015,
     DEFAULT_DENSITY: 0.002
   },
 
