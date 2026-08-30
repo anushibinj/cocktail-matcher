@@ -6,7 +6,7 @@ export class AudioManager {
   private masterGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
   private musicGain: GainNode | null = null;
-  private bgmInterval: number | null = null;
+  private bgmAudio: HTMLAudioElement | null = null;
   private isBgmPlaying: boolean = false;
   private clinkAudioBuffer: AudioBuffer | null = null;
   private lastClinkTime: number = 0;
@@ -36,8 +36,11 @@ export class AudioManager {
       this.sfxGain.connect(this.masterGain);
 
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.setValueAtTime(SaveManager.getInstance().getMusicEnabled() ? 0.18 : 0, this.ctx.currentTime);
+      this.musicGain.gain.setValueAtTime(SaveManager.getInstance().getMusicEnabled() ? 0.35 : 0, this.ctx.currentTime);
       this.musicGain.connect(this.masterGain);
+
+      // Initialize BGM Audio Element with bgm.m4a
+      this.initBgmAudio();
 
       // Try loading custom clink.mp3 from assets/audio/ if present
       this.loadCustomAudio();
@@ -46,7 +49,7 @@ export class AudioManager {
         if (this.ctx && this.ctx.state === 'suspended') {
           this.ctx.resume();
         }
-        if (SaveManager.getInstance().getMusicEnabled() && !this.isBgmPlaying) {
+        if (SaveManager.getInstance().getMusicEnabled()) {
           this.startBgm();
         }
         window.removeEventListener('pointerdown', unlock);
@@ -59,6 +62,16 @@ export class AudioManager {
       window.addEventListener('touchstart', unlock, { once: true });
     } catch (e) {
       console.warn('Web Audio API not supported', e);
+    }
+  }
+
+  private initBgmAudio(): void {
+    try {
+      this.bgmAudio = new Audio('./assets/audio/bgm.m4a');
+      this.bgmAudio.loop = true;
+      this.bgmAudio.volume = SaveManager.getInstance().getMusicEnabled() ? 0.35 : 0;
+    } catch (e) {
+      console.warn('Failed to initialize BGM audio element', e);
     }
   }
 
@@ -84,8 +97,11 @@ export class AudioManager {
 
   public setMusicEnabled(enabled: boolean): void {
     SaveManager.getInstance().setMusicEnabled(enabled);
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = enabled ? 0.35 : 0;
+    }
     if (this.musicGain && this.ctx) {
-      this.musicGain.gain.setValueAtTime(enabled ? 0.18 : 0, this.ctx.currentTime);
+      this.musicGain.gain.setValueAtTime(enabled ? 0.35 : 0, this.ctx.currentTime);
     }
     if (enabled) {
       this.startBgm();
@@ -377,56 +393,26 @@ export class AudioManager {
     osc.stop(now + 0.23);
   }
 
-  // Chill ambient tropical chords synth progression
-  private startBgm(): void {
-    if (this.bgmInterval || !this.ctx) return;
+  public startBgm(): void {
+    if (!SaveManager.getInstance().getMusicEnabled()) return;
     this.isBgmPlaying = true;
-
-    // Chord progressions in C Major / A Minor: Fmaj7 -> G6 -> Em7 -> Am7
-    const chords = [
-      [174.61, 220.00, 261.63, 329.63], // Fmaj7 (F3, A3, C4, E4)
-      [196.00, 246.94, 293.66, 392.00], // G6 (G3, B3, D4, G4)
-      [164.81, 196.00, 246.94, 329.63], // Em7 (E3, G3, B3, E4)
-      [220.00, 261.63, 329.63, 440.00]  // Am (A3, C4, E4, A4)
-    ];
-
-    let chordIndex = 0;
-    const playNextChord = () => {
-      if (!this.ctx || !SaveManager.getInstance().getMusicEnabled()) return;
-      const now = this.ctx.currentTime;
-      const chord = chords[chordIndex];
-      chordIndex = (chordIndex + 1) % chords.length;
-
-      chord.forEach((freq) => {
-        const osc = this.ctx!.createOscillator();
-        const gain = this.ctx!.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now);
-
-        // Soft pad envelope
-        gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.04, now + 0.6);
-        gain.gain.setValueAtTime(0.04, now + 2.0);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.4);
-
-        osc.connect(gain);
-        gain.connect(this.musicGain!);
-
-        osc.start(now);
-        osc.stop(now + 3.5);
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = 0.35;
+      this.bgmAudio.play().catch((err) => {
+        console.log('BGM waiting for user interaction:', err);
       });
-    };
-
-    playNextChord();
-    this.bgmInterval = window.setInterval(playNextChord, 3200);
+    }
   }
 
-  private stopBgm(): void {
-    if (this.bgmInterval) {
-      clearInterval(this.bgmInterval);
-      this.bgmInterval = null;
-    }
+  public stopBgm(): void {
     this.isBgmPlaying = false;
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+    }
+  }
+
+  public isMusicPlaying(): boolean {
+    return this.isBgmPlaying;
   }
 
   private canPlaySfx(): boolean {
