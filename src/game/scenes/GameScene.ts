@@ -109,9 +109,7 @@ export class GameScene extends Phaser.Scene {
     // 9. Drink Spawner
     this.spawner = new DrinkSpawner(
       this,
-      (nextLevel) => {
-        this.hud.updateNextDrink(nextLevel);
-      },
+      undefined,
       (droppedDrink) => {
         this.droppedDrinks.push(droppedDrink);
         if (droppedDrink.level > this.highestDrinkThisGame) {
