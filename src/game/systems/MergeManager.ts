@@ -38,7 +38,12 @@ export class MergeManager {
           (bodyA.label === 'drink' && bodyB.label === 'floor') ||
           (bodyB.label === 'drink' && bodyA.label === 'floor')
         ) {
-          AudioManager.getInstance().playCollision(0.4);
+          const vA = bodyA.velocity || { x: 0, y: 0 };
+          const vB = bodyB.velocity || { x: 0, y: 0 };
+          const speed = Math.sqrt(
+            (vA.x - vB.x) * (vA.x - vB.x) + (vA.y - vB.y) * (vA.y - vB.y)
+          );
+          AudioManager.getInstance().playWallTap(Math.min(1.0, speed / 5));
         }
 
         // Check if both are drinks
@@ -47,6 +52,14 @@ export class MergeManager {
           const drinkB = (bodyB as unknown as { gameObject: Drink }).gameObject;
 
           if (drinkA && drinkB && drinkA instanceof Drink && drinkB instanceof Drink) {
+            const vA = bodyA.velocity || { x: 0, y: 0 };
+            const vB = bodyB.velocity || { x: 0, y: 0 };
+            const relSpeed = Math.sqrt(
+              (vA.x - vB.x) * (vA.x - vB.x) + (vA.y - vB.y) * (vA.y - vB.y)
+            );
+            if (relSpeed > 0.3) {
+              AudioManager.getInstance().playGlassClink(Math.min(1.0, relSpeed / 6));
+            }
             this.handleDrinkCollision(drinkA, drinkB);
           }
         }
@@ -65,10 +78,6 @@ export class MergeManager {
       !d2.active ||
       d1.level !== d2.level
     ) {
-      // Just a normal collision between different drinks
-      if (d1.isDropped && d2.isDropped) {
-        AudioManager.getInstance().playCollision(0.3);
-      }
       return;
     }
 

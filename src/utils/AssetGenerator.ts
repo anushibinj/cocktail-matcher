@@ -30,112 +30,40 @@ export class AssetGenerator {
       const cx = size / 2;
       const cy = size / 2;
 
-      // 1. Soft outer drop shadow / ambient glow
+      // 1. Soft glowing background circular bubble (gives clean physics boundaries and visibility)
       ctx.save();
-      ctx.shadowColor = this.hexToRgbString(drink.primaryColor, 0.45);
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = this.hexToRgbString(drink.primaryColor, 0.5);
+      ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.fillStyle = this.hexToRgbString(drink.primaryColor, 0.9);
+      ctx.fillStyle = this.hexToRgbString(drink.primaryColor, 0.22);
       ctx.fill();
+
+      // Subtle bubble border
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = this.hexToRgbString(drink.secondaryColor, 0.5);
+      ctx.stroke();
       ctx.restore();
 
-      // 2. Liquid body with radial / linear gradient
-      const liquidGrad = ctx.createRadialGradient(
-        cx - radius * 0.3,
-        cy - radius * 0.3,
-        radius * 0.1,
-        cx,
-        cy,
-        radius
-      );
-      liquidGrad.addColorStop(0, this.hexToRgbString(drink.secondaryColor, 1));
-      liquidGrad.addColorStop(0.7, this.hexToRgbString(drink.primaryColor, 1));
-      liquidGrad.addColorStop(1, this.hexToRgbString(drink.primaryColor, 0.85));
+      // 2. Draw Side-View Cocktail Glass
+      this.drawSideViewCocktail(ctx, cx, cy, radius, drink);
 
+      // 3. Specular highlight on the bubble
       ctx.save();
       ctx.beginPath();
-      ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
-      ctx.fillStyle = liquidGrad;
-      ctx.fill();
-      ctx.clip();
-
-      // Liquid shine wave / swirl inside
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.beginPath();
-      ctx.arc(cx, cy + radius * 0.3, radius * 0.8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Ice cubes for level >= 0
-      if (radius > 20) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.lineWidth = 1.5;
-
-        // Ice cube 1
-        const ice1X = cx - radius * 0.35;
-        const ice1Y = cy - radius * 0.2;
-        const ice1Size = radius * 0.3;
-        ctx.strokeRect(ice1X, ice1Y, ice1Size, ice1Size);
-        ctx.fillRect(ice1X, ice1Y, ice1Size, ice1Size);
-
-        // Ice cube 2
-        if (radius > 35) {
-          const ice2X = cx + radius * 0.1;
-          const ice2Y = cy + radius * 0.05;
-          const ice2Size = radius * 0.26;
-          ctx.strokeRect(ice2X, ice2Y, ice2Size, ice2Size);
-          ctx.fillRect(ice2X, ice2Y, ice2Size, ice2Size);
-        }
-      }
-
-      // Soda bubbles
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      const bubbleCount = Math.min(8, Math.floor(radius / 10));
-      for (let i = 0; i < bubbleCount; i++) {
-        const bx = cx + (Math.sin(i * 1.7 + drink.level) * radius * 0.5);
-        const by = cy + (Math.cos(i * 2.3 + drink.level) * radius * 0.5);
-        const br = 2 + (i % 3);
-        ctx.beginPath();
-        ctx.arc(bx, by, br, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Draw custom garnish / decoration on the drink
-      this.drawGarnish(ctx, cx, cy, radius, drink);
-
-      ctx.restore(); // end clip
-
-      // 3. Glass border with glossy reflection
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius - 1.5, 0, Math.PI * 2);
-      ctx.lineWidth = Math.max(2.5, radius * 0.06);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.stroke();
-
-      // Top-left glossy highlight arc
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius * 0.78, -Math.PI * 0.8, -Math.PI * 0.3);
-      ctx.lineWidth = Math.max(2, radius * 0.07);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.arc(cx, cy, radius * 0.85, -Math.PI * 0.75, -Math.PI * 0.35);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = Math.max(1.5, radius * 0.05);
       ctx.lineCap = 'round';
       ctx.stroke();
-
-      // Secondary specular dot
-      ctx.beginPath();
-      ctx.arc(cx - radius * 0.5, cy - radius * 0.5, Math.max(2, radius * 0.08), 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      ctx.fill();
-
       ctx.restore();
 
-      // Add to Phaser texture manager
+      // Register canvas texture
       scene.textures.addCanvas(`drink_${drink.level}`, canvas);
     });
   }
 
-  private static drawGarnish(
+  private static drawSideViewCocktail(
     ctx: CanvasRenderingContext2D,
     cx: number,
     cy: number,
@@ -144,182 +72,773 @@ export class AssetGenerator {
   ): void {
     ctx.save();
 
-    switch (drink.garnish) {
-      case 'lime':
-      case 'orange': {
-        // Citrus wedge in top right corner
-        const wx = cx + radius * 0.35;
-        const wy = cy - radius * 0.35;
-        const wr = radius * 0.4;
-        ctx.beginPath();
-        ctx.arc(wx, wy, wr, 0, Math.PI * 2);
-        ctx.fillStyle = drink.garnish === 'lime' ? '#a7c957' : '#f77f00';
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+    const pColor = this.hexToRgbString(drink.primaryColor, 1);
+    const sColor = this.hexToRgbString(drink.secondaryColor, 1);
 
-        // Inner segments
-        ctx.fillStyle = drink.garnish === 'lime' ? '#d9ed92' : '#fcbf49';
-        ctx.beginPath();
-        ctx.arc(wx, wy, wr * 0.8, 0, Math.PI * 2);
-        ctx.fill();
+    switch (drink.level) {
+      case 0: // Citrus Splash — Rocks / Tumbler Glass
+        this.drawTumblerGlass(ctx, cx, cy, radius, pColor, sColor, 'lime');
         break;
-      }
 
-      case 'berry': {
-        // Floating dual berries
-        const bx1 = cx + radius * 0.25;
-        const by1 = cy - radius * 0.25;
-        ctx.beginPath();
-        ctx.arc(bx1, by1, radius * 0.22, 0, Math.PI * 2);
-        ctx.fillStyle = '#9b2226';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(bx1 - radius * 0.2, by1 + radius * 0.1, radius * 0.18, 0, Math.PI * 2);
-        ctx.fillStyle = '#ae2012';
-        ctx.fill();
+      case 1: // Berry Fizz — Champagne / Spritz Flute
+        this.drawFluteGlass(ctx, cx, cy, radius, pColor, sColor, 'berry');
         break;
-      }
 
-      case 'pineapple': {
-        // Pineapple wedge
-        const px = cx + radius * 0.2;
-        const py = cy - radius * 0.2;
-        ctx.fillStyle = '#ffb703';
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(px + radius * 0.4, py - radius * 0.3);
-        ctx.lineTo(px + radius * 0.5, py + radius * 0.1);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#fb8500';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+      case 2: // Pineapple Cooler — Tall Highball Glass
+        this.drawHighballGlass(ctx, cx, cy, radius, pColor, sColor, 'pineapple');
         break;
-      }
 
-      case 'mint': {
-        // Mint leaf pair
-        const mx = cx;
-        const my = cy - radius * 0.25;
-        ctx.fillStyle = '#38b000';
-        ctx.beginPath();
-        ctx.ellipse(mx - radius * 0.15, my, radius * 0.22, radius * 0.12, -Math.PI / 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(mx + radius * 0.15, my, radius * 0.22, radius * 0.12, Math.PI / 4, 0, Math.PI * 2);
-        ctx.fill();
+      case 3: // Sunset Cooler — Margarita / Coupe Glass
+        this.drawCoupeGlass(ctx, cx, cy, radius, pColor, sColor, 'orange');
         break;
-      }
 
-      case 'umbrella': {
-        // Mini cocktail umbrella
-        const ux = cx + radius * 0.1;
-        const uy = cy - radius * 0.2;
-        const ur = radius * 0.45;
-        ctx.fillStyle = '#ff006e';
-        ctx.beginPath();
-        ctx.arc(ux, uy, ur, -Math.PI * 0.9, -Math.PI * 0.1);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#ffd166';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Umbrella stick
-        ctx.strokeStyle = '#ffeaa7';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(ux, uy);
-        ctx.lineTo(ux + radius * 0.2, uy + radius * 0.45);
-        ctx.stroke();
+      case 4: // Mint Lime — Mojito Highball
+        this.drawMojitoGlass(ctx, cx, cy, radius, pColor, sColor);
         break;
-      }
 
-      case 'starfruit': {
-        // 5-point star fruit
-        const sx = cx + radius * 0.2;
-        const sy = cy - radius * 0.2;
-        const sr = radius * 0.28;
-        ctx.fillStyle = '#ffd166';
-        ctx.strokeStyle = '#06d6a0';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        for (let i = 0; i < 5; i++) {
-          const a = (i * Math.PI * 2) / 5 - Math.PI / 2;
-          const r1 = sr;
-          const r2 = sr * 0.45;
-          const x1 = sx + Math.cos(a) * r1;
-          const y1 = sy + Math.sin(a) * r1;
-          const a2 = a + Math.PI / 5;
-          const x2 = sx + Math.cos(a2) * r2;
-          const y2 = sy + Math.sin(a2) * r2;
-          if (i === 0) ctx.moveTo(x1, y1);
-          else ctx.lineTo(x1, y1);
-          ctx.lineTo(x2, y2);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+      case 5: // Tropical Punch — Hurricane Glass with Umbrella
+        this.drawHurricaneGlass(ctx, cx, cy, radius, pColor, sColor, 'umbrella');
         break;
-      }
 
-      case 'flower': {
-        // Hibiscus / tropical flower
-        const fx = cx + radius * 0.15;
-        const fy = cy - radius * 0.15;
-        const fr = radius * 0.18;
-        ctx.fillStyle = '#ff007f';
-        for (let i = 0; i < 5; i++) {
-          const a = (i * Math.PI * 2) / 5;
-          ctx.beginPath();
-          ctx.arc(fx + Math.cos(a) * fr, fy + Math.sin(a) * fr, fr * 0.8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.fillStyle = '#ffe600';
-        ctx.beginPath();
-        ctx.arc(fx, fy, fr * 0.6, 0, Math.PI * 2);
-        ctx.fill();
+      case 6: // Island Breeze — Poco Grande with Starfruit
+        this.drawPocoGrandeGlass(ctx, cx, cy, radius, pColor, sColor, 'starfruit');
         break;
-      }
 
-      case 'straw': {
-        // Striped neon straw
-        ctx.save();
-        ctx.strokeStyle = '#ffbe0b';
-        ctx.lineWidth = radius * 0.12;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(cx - radius * 0.2, cy + radius * 0.4);
-        ctx.lineTo(cx + radius * 0.35, cy - radius * 0.55);
-        ctx.stroke();
-        ctx.restore();
+      case 7: // Blue Lagoon — Triangular Martini Glass
+        this.drawMartiniGlass(ctx, cx, cy, radius, pColor, sColor);
         break;
-      }
 
-      case 'sparkler': {
-        // Blazing fireworks/sparkler effect for tier 11
-        const spX = cx;
-        const spY = cy - radius * 0.3;
-        ctx.strokeStyle = '#fffb00';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 8; i++) {
-          const a = (i * Math.PI * 2) / 8;
-          ctx.beginPath();
-          ctx.moveTo(spX, spY);
-          ctx.lineTo(spX + Math.cos(a) * (radius * 0.45), spY + Math.sin(a) * (radius * 0.45));
-          ctx.stroke();
-        }
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(spX, spY, radius * 0.15, 0, Math.PI * 2);
-        ctx.fill();
+      case 8: // Passion Colada — Coconut Shell Cup
+        this.drawCoconutCup(ctx, cx, cy, radius, pColor, sColor);
         break;
-      }
+
+      case 9: // Golden Sunset — Layered Tulip Glass
+        this.drawTulipSunriseGlass(ctx, cx, cy, radius, pColor, sColor);
+        break;
+
+      case 10: // Royal Cocktail — Gold Chalice / Goblet
+        this.drawRoyalChalice(ctx, cx, cy, radius, pColor, sColor);
+        break;
+
+      case 11: // Ultimate Cocktail — Tiki Totem Mug with Sparkler
+        this.drawTikiMug(ctx, cx, cy, radius, pColor, sColor);
+        break;
     }
 
     ctx.restore();
+  }
+
+  // --- 0. Rocks / Tumbler Glass ---
+  private static drawTumblerGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string,
+    _garnish: string
+  ): void {
+    const gw = radius * 1.1;
+    const gh = radius * 1.3;
+    const top = cy - gh * 0.45;
+    const bot = cy + gh * 0.45;
+    const wTop = gw * 0.9;
+    const wBot = gw * 0.72;
+
+    // Liquid fill
+    const grad = ctx.createLinearGradient(0, top, 0, bot);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.45, top + gh * 0.15);
+    ctx.lineTo(cx + wTop * 0.45, top + gh * 0.15);
+    ctx.lineTo(cx + wBot * 0.45, bot - gh * 0.1);
+    ctx.lineTo(cx - wBot * 0.45, bot - gh * 0.1);
+    ctx.closePath();
+    ctx.fill();
+
+    // Ice cube
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.fillRect(cx - radius * 0.25, cy - radius * 0.1, radius * 0.28, radius * 0.28);
+
+    // Glass outline & thick base
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.5, top);
+    ctx.lineTo(cx - wBot * 0.5, bot);
+    ctx.lineTo(cx + wBot * 0.5, bot);
+    ctx.lineTo(cx + wTop * 0.5, top);
+    ctx.stroke();
+
+    // Thick glass bottom
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.fillRect(cx - wBot * 0.45, bot - gh * 0.1, wBot * 0.9, gh * 0.08);
+
+    // Lime wheel garnish on rim
+    const lx = cx + wTop * 0.45;
+    const ly = top + 2;
+    const lr = radius * 0.35;
+    ctx.fillStyle = '#a7c957';
+    ctx.beginPath();
+    ctx.arc(lx, ly, lr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d9ed92';
+    ctx.beginPath();
+    ctx.arc(lx, ly, lr * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // --- 1. Champagne / Spritz Flute ---
+  private static drawFluteGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string,
+    _garnish: string
+  ): void {
+    const gh = radius * 1.5;
+    const top = cy - gh * 0.48;
+    const botBowl = cy + gh * 0.15;
+    const footY = cy + gh * 0.48;
+    const bw = radius * 0.7;
+
+    // Liquid fill
+    const grad = ctx.createLinearGradient(0, top, 0, botBowl);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx - bw * 0.4, top + gh * 0.1);
+    ctx.lineTo(cx + bw * 0.4, top + gh * 0.1);
+    ctx.quadraticCurveTo(cx + bw * 0.45, botBowl * 0.8, cx, botBowl);
+    ctx.quadraticCurveTo(cx - bw * 0.45, botBowl * 0.8, cx - bw * 0.4, top + gh * 0.1);
+    ctx.fill();
+
+    // Effervescent bubbles
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.arc(cx + (i % 2 === 0 ? -4 : 4), cy - i * 6, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Glass Bowl Outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(cx - bw * 0.45, top);
+    ctx.lineTo(cx - bw * 0.45, top + gh * 0.3);
+    ctx.quadraticCurveTo(cx - bw * 0.45, botBowl, cx, botBowl);
+    ctx.quadraticCurveTo(cx + bw * 0.45, botBowl, cx + bw * 0.45, top + gh * 0.3);
+    ctx.lineTo(cx + bw * 0.45, top);
+    ctx.stroke();
+
+    // Stem & Foot
+    ctx.beginPath();
+    ctx.moveTo(cx, botBowl);
+    ctx.lineTo(cx, footY);
+    ctx.moveTo(cx - bw * 0.4, footY);
+    ctx.lineTo(cx + bw * 0.4, footY);
+    ctx.stroke();
+
+    // Berries on rim
+    ctx.fillStyle = '#9b2226';
+    ctx.beginPath();
+    ctx.arc(cx + bw * 0.45, top - 2, radius * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- 2. Tall Highball Glass ---
+  private static drawHighballGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string,
+    _garnish: string
+  ): void {
+    const gw = radius * 0.95;
+    const gh = radius * 1.5;
+    const top = cy - gh * 0.48;
+    const bot = cy + gh * 0.46;
+
+    // Liquid fill
+    const grad = ctx.createLinearGradient(0, top, 0, bot);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - gw * 0.42, top + gh * 0.12, gw * 0.84, gh * 0.78);
+
+    // Ice cubes stacked
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillRect(cx - radius * 0.2, cy - radius * 0.3, radius * 0.35, radius * 0.35);
+    ctx.fillRect(cx - radius * 0.15, cy + radius * 0.1, radius * 0.35, radius * 0.35);
+
+    // Straw
+    ctx.strokeStyle = '#48cae4';
+    ctx.lineWidth = Math.max(3, radius * 0.09);
+    ctx.beginPath();
+    ctx.moveTo(cx - radius * 0.15, bot - gh * 0.1);
+    ctx.lineTo(cx + gw * 0.45, top - radius * 0.3);
+    ctx.stroke();
+
+    // Glass outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.strokeRect(cx - gw * 0.45, top, gw * 0.9, gh * 0.94);
+
+    // Pineapple wedge on rim
+    const px = cx - gw * 0.45;
+    const py = top;
+    ctx.fillStyle = '#ffb703';
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px - radius * 0.35, py - radius * 0.25);
+    ctx.lineTo(px - radius * 0.1, py - radius * 0.45);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#38b000'; // leaf
+    ctx.fillRect(px - radius * 0.25, py - radius * 0.6, radius * 0.12, radius * 0.25);
+  }
+
+  // --- 3. Margarita / Coupe Glass ---
+  private static drawCoupeGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string,
+    _garnish: string
+  ): void {
+    const gh = radius * 1.5;
+    const top = cy - gh * 0.45;
+    const bowlMid = cy - gh * 0.15;
+    const bowlBot = cy + gh * 0.1;
+    const footY = cy + gh * 0.46;
+    const wTop = radius * 1.35;
+
+    // Liquid fill with sunset gradient
+    const grad = ctx.createLinearGradient(0, top, 0, bowlBot);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.45, top + gh * 0.08);
+    ctx.lineTo(cx + wTop * 0.45, top + gh * 0.08);
+    ctx.quadraticCurveTo(cx + wTop * 0.3, bowlMid, cx + wTop * 0.2, bowlMid);
+    ctx.quadraticCurveTo(cx + wTop * 0.1, bowlBot, cx, bowlBot);
+    ctx.quadraticCurveTo(cx - wTop * 0.1, bowlBot, cx - wTop * 0.2, bowlMid);
+    ctx.quadraticCurveTo(cx - wTop * 0.3, bowlMid, cx - wTop * 0.45, top + gh * 0.08);
+    ctx.fill();
+
+    // Glass outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.5, top);
+    ctx.lineTo(cx + wTop * 0.5, top);
+    ctx.quadraticCurveTo(cx + wTop * 0.35, bowlMid, cx + wTop * 0.2, bowlMid);
+    ctx.quadraticCurveTo(cx + wTop * 0.15, bowlBot, cx, bowlBot);
+    ctx.lineTo(cx, footY);
+    ctx.moveTo(cx - wTop * 0.35, footY);
+    ctx.lineTo(cx + wTop * 0.35, footY);
+    ctx.stroke();
+
+    // Orange wheel on rim
+    const ox = cx + wTop * 0.48;
+    const oy = top;
+    const or = radius * 0.35;
+    ctx.fillStyle = '#f77f00';
+    ctx.beginPath();
+    ctx.arc(ox, oy, or, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fcbf49';
+    ctx.beginPath();
+    ctx.arc(ox, oy, or * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- 4. Mint Mojito Highball ---
+  private static drawMojitoGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string
+  ): void {
+    const gw = radius * 1.0;
+    const gh = radius * 1.5;
+    const top = cy - gh * 0.48;
+    const bot = cy + gh * 0.46;
+
+    // Liquid fill
+    const grad = ctx.createLinearGradient(0, top, 0, bot);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - gw * 0.42, top + gh * 0.1, gw * 0.84, gh * 0.8);
+
+    // Mint leaves floating
+    ctx.fillStyle = '#38b000';
+    ctx.beginPath();
+    ctx.ellipse(cx - radius * 0.15, cy - radius * 0.2, radius * 0.22, radius * 0.1, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + radius * 0.1, cy + radius * 0.15, radius * 0.22, radius * 0.1, Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lime half-wheel inside
+    ctx.fillStyle = '#a7c957';
+    ctx.beginPath();
+    ctx.arc(cx - radius * 0.1, cy + radius * 0.25, radius * 0.2, 0, Math.PI);
+    ctx.fill();
+
+    // Green striped straw
+    ctx.strokeStyle = '#70e000';
+    ctx.lineWidth = Math.max(3, radius * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(cx - radius * 0.1, bot - gh * 0.1);
+    ctx.lineTo(cx + gw * 0.45, top - radius * 0.35);
+    ctx.stroke();
+
+    // Glass outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.strokeRect(cx - gw * 0.45, top, gw * 0.9, gh * 0.94);
+  }
+
+  // --- 5. Tropical Punch Hurricane Glass ---
+  private static drawHurricaneGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string,
+    _garnish: string
+  ): void {
+    const gh = radius * 1.55;
+    const top = cy - gh * 0.48;
+    const waistY = cy - gh * 0.1;
+    const bellyY = cy + gh * 0.2;
+    const footY = cy + gh * 0.48;
+    const wTop = radius * 0.9;
+    const wWaist = radius * 0.65;
+    const wBelly = radius * 1.05;
+
+    // Liquid fill
+    const grad = ctx.createLinearGradient(0, top, 0, footY);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.45, top + gh * 0.1);
+    ctx.lineTo(cx + wTop * 0.45, top + gh * 0.1);
+    ctx.quadraticCurveTo(cx + wWaist * 0.5, waistY, cx + wBelly * 0.48, bellyY);
+    ctx.quadraticCurveTo(cx + wBelly * 0.4, footY - gh * 0.1, cx, footY - gh * 0.08);
+    ctx.quadraticCurveTo(cx - wBelly * 0.4, footY - gh * 0.1, cx - wBelly * 0.48, bellyY);
+    ctx.quadraticCurveTo(cx - wWaist * 0.5, waistY, cx - wTop * 0.45, top + gh * 0.1);
+    ctx.fill();
+
+    // Glass outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.5, top);
+    ctx.quadraticCurveTo(cx - wWaist * 0.55, waistY, cx - wBelly * 0.5, bellyY);
+    ctx.quadraticCurveTo(cx - wBelly * 0.4, footY - gh * 0.1, cx, footY - gh * 0.08);
+    ctx.lineTo(cx, footY);
+    ctx.moveTo(cx - wTop * 0.35, footY);
+    ctx.lineTo(cx + wTop * 0.35, footY);
+    ctx.moveTo(cx, footY - gh * 0.08);
+    ctx.quadraticCurveTo(cx + wBelly * 0.4, footY - gh * 0.1, cx + wBelly * 0.5, bellyY);
+    ctx.quadraticCurveTo(cx + wWaist * 0.55, waistY, cx + wTop * 0.5, top);
+    ctx.stroke();
+
+    // Cocktail Umbrella on rim
+    const ux = cx + wTop * 0.35;
+    const uy = top - radius * 0.25;
+    const ur = radius * 0.45;
+    ctx.fillStyle = '#ff006e';
+    ctx.beginPath();
+    ctx.arc(ux, uy, ur, -Math.PI * 0.9, -Math.PI * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Red cherry with green stem
+    ctx.fillStyle = '#d90429';
+    ctx.beginPath();
+    ctx.arc(cx - wTop * 0.3, top - 2, radius * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- 6. Island Breeze Poco Grande Glass ---
+  private static drawPocoGrandeGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string,
+    _garnish: string
+  ): void {
+    const gh = radius * 1.55;
+    const top = cy - gh * 0.48;
+    const waistY = cy - gh * 0.08;
+    const bellyY = cy + gh * 0.22;
+    const footY = cy + gh * 0.48;
+    const wTop = radius * 0.95;
+    const wWaist = radius * 0.7;
+    const wBelly = radius * 1.1;
+
+    // Liquid fill
+    const grad = ctx.createLinearGradient(0, top, 0, footY);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.45, top + gh * 0.1);
+    ctx.lineTo(cx + wTop * 0.45, top + gh * 0.1);
+    ctx.quadraticCurveTo(cx + wWaist * 0.5, waistY, cx + wBelly * 0.48, bellyY);
+    ctx.quadraticCurveTo(cx + wBelly * 0.35, footY - gh * 0.1, cx, footY - gh * 0.08);
+    ctx.quadraticCurveTo(cx - wBelly * 0.35, footY - gh * 0.1, cx - wBelly * 0.48, bellyY);
+    ctx.quadraticCurveTo(cx - wWaist * 0.5, waistY, cx - wTop * 0.45, top + gh * 0.1);
+    ctx.fill();
+
+    // Glass outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.5, top);
+    ctx.quadraticCurveTo(cx - wWaist * 0.55, waistY, cx - wBelly * 0.5, bellyY);
+    ctx.quadraticCurveTo(cx - wBelly * 0.35, footY - gh * 0.1, cx, footY - gh * 0.08);
+    ctx.lineTo(cx, footY);
+    ctx.moveTo(cx - wTop * 0.38, footY);
+    ctx.lineTo(cx + wTop * 0.38, footY);
+    ctx.moveTo(cx, footY - gh * 0.08);
+    ctx.quadraticCurveTo(cx + wBelly * 0.35, footY - gh * 0.1, cx + wBelly * 0.5, bellyY);
+    ctx.quadraticCurveTo(cx + wWaist * 0.55, waistY, cx + wTop * 0.5, top);
+    ctx.stroke();
+
+    // Starfruit slice on rim
+    const sx = cx + wTop * 0.48;
+    const sy = top;
+    const sr = radius * 0.3;
+    ctx.fillStyle = '#ffd166';
+    ctx.strokeStyle = '#06d6a0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * Math.PI * 2) / 5 - Math.PI / 2;
+      const r1 = sr;
+      const r2 = sr * 0.45;
+      const x1 = sx + Math.cos(a) * r1;
+      const y1 = sy + Math.sin(a) * r1;
+      const a2 = a + Math.PI / 5;
+      const x2 = sx + Math.cos(a2) * r2;
+      const y2 = sy + Math.sin(a2) * r2;
+      if (i === 0) ctx.moveTo(x1, y1);
+      else ctx.lineTo(x1, y1);
+      ctx.lineTo(x2, y2);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // --- 7. Triangular Martini Glass (Blue Lagoon) ---
+  private static drawMartiniGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string
+  ): void {
+    const gh = radius * 1.55;
+    const top = cy - gh * 0.45;
+    const apexY = cy + gh * 0.08;
+    const footY = cy + gh * 0.46;
+    const wTop = radius * 1.4;
+
+    // Liquid fill
+    const grad = ctx.createLinearGradient(0, top, 0, apexY);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.42, top + gh * 0.08);
+    ctx.lineTo(cx + wTop * 0.42, top + gh * 0.08);
+    ctx.lineTo(cx, apexY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Neon Glow outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.5, top);
+    ctx.lineTo(cx, apexY);
+    ctx.lineTo(cx + wTop * 0.5, top);
+    ctx.moveTo(cx, apexY);
+    ctx.lineTo(cx, footY);
+    ctx.moveTo(cx - wTop * 0.38, footY);
+    ctx.lineTo(cx + wTop * 0.38, footY);
+    ctx.stroke();
+
+    // Spiral lime peel twist
+    ctx.strokeStyle = '#a7c957';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(cx - wTop * 0.48, top + 4, radius * 0.18, 0, Math.PI * 1.5);
+    ctx.stroke();
+  }
+
+  // --- 8. Coconut Shell Cup (Passion Colada) ---
+  private static drawCoconutCup(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string
+  ): void {
+    const cr = radius * 0.85;
+    const top = cy - cr * 0.2;
+
+    // Coconut Outer Shell
+    ctx.fillStyle = '#4a2810';
+    ctx.beginPath();
+    ctx.arc(cx, cy + cr * 0.1, cr, 0, Math.PI);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#6f3d1b';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Creamy colada liquid inside
+    const grad = ctx.createLinearGradient(0, top, 0, cy + cr);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(cx, top + 4, cr * 0.88, cr * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Straw
+    ctx.strokeStyle = '#e9c46a';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(cx + radius * 0.2, cy + cr * 0.4);
+    ctx.lineTo(cx + radius * 0.6, top - radius * 0.45);
+    ctx.stroke();
+
+    // Tropical Pink Hibiscus Flower
+    const fx = cx - cr * 0.45;
+    const fy = top - radius * 0.1;
+    const fr = radius * 0.22;
+    ctx.fillStyle = '#ff007f';
+    for (let i = 0; i < 5; i++) {
+      const a = (i * Math.PI * 2) / 5;
+      ctx.beginPath();
+      ctx.arc(fx + Math.cos(a) * fr, fy + Math.sin(a) * fr, fr * 0.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#ffe600';
+    ctx.beginPath();
+    ctx.arc(fx, fy, fr * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- 9. Layered Tequila Sunrise Tulip Glass ---
+  private static drawTulipSunriseGlass(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    _pColor: string,
+    _sColor: string
+  ): void {
+    const gh = radius * 1.55;
+    const top = cy - gh * 0.46;
+    const bellyY = cy + gh * 0.05;
+    const apexY = cy + gh * 0.2;
+    const footY = cy + gh * 0.48;
+    const wTop = radius * 0.95;
+    const wBelly = radius * 1.15;
+
+    // 3-Tone Tequila Sunrise Layered Liquid (Yellow -> Orange -> Red Grenadine)
+    const grad = ctx.createLinearGradient(0, top, 0, apexY);
+    grad.addColorStop(0, '#ffea00');    // Yellow top
+    grad.addColorStop(0.5, '#ff7b00');  // Orange middle
+    grad.addColorStop(1, '#9d0208');    // Crimson red grenadine base
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.45, top + gh * 0.08);
+    ctx.lineTo(cx + wTop * 0.45, top + gh * 0.08);
+    ctx.quadraticCurveTo(cx + wBelly * 0.5, bellyY, cx, apexY);
+    ctx.quadraticCurveTo(cx - wBelly * 0.5, bellyY, cx - wTop * 0.45, top + gh * 0.08);
+    ctx.fill();
+
+    // Glass outline
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = Math.max(2, radius * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(cx - wTop * 0.5, top);
+    ctx.quadraticCurveTo(cx - wBelly * 0.55, bellyY, cx, apexY);
+    ctx.lineTo(cx, footY);
+    ctx.moveTo(cx - wTop * 0.38, footY);
+    ctx.lineTo(cx + wTop * 0.38, footY);
+    ctx.moveTo(cx, apexY);
+    ctx.quadraticCurveTo(cx + wBelly * 0.55, bellyY, cx + wTop * 0.5, top);
+    ctx.stroke();
+
+    // Orange slice & cherry
+    ctx.fillStyle = '#ff7b00';
+    ctx.beginPath();
+    ctx.arc(cx + wTop * 0.48, top, radius * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- 10. Royal Gold Chalice / Goblet ---
+  private static drawRoyalChalice(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    pColor: string,
+    sColor: string
+  ): void {
+    const gh = radius * 1.55;
+    const top = cy - gh * 0.45;
+    const bowlBot = cy + gh * 0.12;
+    const footY = cy + gh * 0.46;
+    const bw = radius * 1.25;
+
+    // Royal Purple Velvet Liquid
+    const grad = ctx.createLinearGradient(0, top, 0, bowlBot);
+    grad.addColorStop(0, sColor);
+    grad.addColorStop(1, pColor);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy - gh * 0.15, bw * 0.48, 0, Math.PI);
+    ctx.fill();
+
+    // Gold Sparkles in liquid
+    ctx.fillStyle = '#ffd700';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(cx - radius * 0.2 + i * radius * 0.2, cy - gh * 0.05, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Gold Chalice Filigree Outline & Stem
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = Math.max(3, radius * 0.09);
+    ctx.beginPath();
+    // Chalice bowl outline
+    ctx.arc(cx, cy - gh * 0.15, bw * 0.5, 0, Math.PI);
+    // Stem
+    ctx.moveTo(cx, bowlBot);
+    ctx.lineTo(cx, footY);
+    // Ornate base
+    ctx.moveTo(cx - bw * 0.4, footY);
+    ctx.lineTo(cx + bw * 0.4, footY);
+    // Rim
+    ctx.moveTo(cx - bw * 0.52, top + gh * 0.08);
+    ctx.lineTo(cx + bw * 0.52, top + gh * 0.08);
+    ctx.stroke();
+
+    // Gem in stem center
+    ctx.fillStyle = '#ff006e';
+    ctx.beginPath();
+    ctx.arc(cx, (bowlBot + footY) / 2, radius * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // --- 11. Ultimate Tiki Masterpiece Mug ---
+  private static drawTikiMug(
+    ctx: CanvasRenderingContext2D,
+    cx: number,
+    cy: number,
+    radius: number,
+    _pColor: string,
+    _sColor: string
+  ): void {
+    const mw = radius * 1.25;
+    const mh = radius * 1.45;
+    const top = cy - mh * 0.45;
+
+    // Ceramic Tiki Mug Body (Wood/Earthen brown)
+    ctx.fillStyle = '#5c3d2e';
+    ctx.beginPath();
+    this.roundRect(ctx, cx - mw * 0.45, top + mh * 0.1, mw * 0.9, mh * 0.85, 16);
+    ctx.fill();
+    ctx.strokeStyle = '#8b5a2b';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Carved Tiki Face Features
+    // Eyes
+    ctx.fillStyle = '#ffbe0b';
+    ctx.fillRect(cx - mw * 0.35, cy - radius * 0.15, mw * 0.25, radius * 0.2);
+    ctx.fillRect(cx + mw * 0.1, cy - radius * 0.15, mw * 0.25, radius * 0.2);
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(cx - mw * 0.25, cy - radius * 0.1, mw * 0.1, radius * 0.1);
+    ctx.fillRect(cx + mw * 0.15, cy - radius * 0.1, mw * 0.1, radius * 0.1);
+
+    // Tiki Grimace Mouth with Teeth
+    ctx.fillStyle = '#221105';
+    ctx.fillRect(cx - mw * 0.32, cy + radius * 0.15, mw * 0.64, radius * 0.25);
+    ctx.fillStyle = '#ffffff';
+    for (let t = 0; t < 4; t++) {
+      ctx.fillRect(cx - mw * 0.28 + t * (mw * 0.15), cy + radius * 0.16, mw * 0.1, radius * 0.1);
+      ctx.fillRect(cx - mw * 0.28 + t * (mw * 0.15), cy + radius * 0.28, mw * 0.1, radius * 0.1);
+    }
+
+    // Rainbow Volcano Overflow at Top
+    const rainGrad = ctx.createLinearGradient(cx - mw * 0.4, 0, cx + mw * 0.4, 0);
+    rainGrad.addColorStop(0, '#ff0054');
+    rainGrad.addColorStop(0.5, '#ffbe0b');
+    rainGrad.addColorStop(1, '#06d6a0');
+    ctx.fillStyle = rainGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx, top + mh * 0.1, mw * 0.44, radius * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Blazing Sparklers / Torch fireworks
+    const spX = cx + radius * 0.25;
+    const spY = top - radius * 0.25;
+    ctx.strokeStyle = '#fffb00';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI * 2) / 8;
+      ctx.beginPath();
+      ctx.moveTo(spX, spY);
+      ctx.lineTo(spX + Math.cos(a) * (radius * 0.4), spY + Math.sin(a) * (radius * 0.4));
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(spX, spY, radius * 0.12, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   private static generateParticles(scene: Phaser.Scene): void {
