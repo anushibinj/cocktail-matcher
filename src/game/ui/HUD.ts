@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../../storage/SaveManager';
+import { GAME_CONFIG } from '../config/gameConfig';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -64,7 +65,10 @@ export class HUD {
   }
 
   private createBottomScoreCards(): void {
-    const bottomY = 1190;
+    // 1190 was tuned against the original 1280-tall reference canvas;
+    // rescale so the cards stay anchored near the bottom edge on devices
+    // where GAME_CONFIG.HEIGHT has been stretched taller (see gameConfig.ts).
+    const bottomY = Math.round((1190 / 1280) * GAME_CONFIG.HEIGHT);
 
     // 1. Current Score Card (Bottom Left)
     const scoreBg = this.scene.add.sprite(220, bottomY, 'ui_card_bg');
