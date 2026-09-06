@@ -64,7 +64,13 @@ export const GAME_CONFIG = {
 
   // Launcher & Danger Heights (Upward Layout: Launch from Bottom, Stack at Top)
   SPAWN_Y: scaleY(1010),
-  DANGER_LINE_Y: scaleY(890),
+  // 890 left roughly 54% of the board height as a "safe" buffer below the
+  // ceiling; sustained random play never filled anywhere close to that much
+  // of it (observed settled-pile front stayed around 25-30% of the height
+  // even after 200+ careless drops), so overflow was effectively unreachable
+  // without deliberately stacking in one spot. Moved closer to the ceiling
+  // so a disorganized pile becomes genuinely risky.
+  DANGER_LINE_Y: scaleY(540),
   DROP_COOLDOWN_MS: 450,
   DANGER_GRACE_PERIOD_MS: 2000,
 
