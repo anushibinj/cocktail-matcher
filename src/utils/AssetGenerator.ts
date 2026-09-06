@@ -3,8 +3,14 @@ import { DRINKS } from '../game/config/drinks';
 import { GAME_CONFIG } from '../game/config/gameConfig';
 
 export class AssetGenerator {
-  public static generateAll(scene: Phaser.Scene): void {
-    this.generateDrinkTextures(scene);
+  /**
+   * @param proceduralDrinkLevels Drink levels to render procedurally. Levels
+   * not in this set already have real artwork loaded under the `drink_N`
+   * texture key (see BootScene) and are left alone. Omit to generate every
+   * tier procedurally.
+   */
+  public static generateAll(scene: Phaser.Scene, proceduralDrinkLevels?: Set<number>): void {
+    this.generateDrinkTextures(scene, proceduralDrinkLevels);
     this.generateParticles(scene);
     this.generateBackground(scene);
     this.generateBoardGraphics(scene);
@@ -18,8 +24,12 @@ export class AssetGenerator {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
-  private static generateDrinkTextures(scene: Phaser.Scene): void {
+  private static generateDrinkTextures(scene: Phaser.Scene, proceduralDrinkLevels?: Set<number>): void {
     DRINKS.forEach((drink) => {
+      if (proceduralDrinkLevels && !proceduralDrinkLevels.has(drink.level)) {
+        return; // real artwork already loaded under this texture key
+      }
+
       const radius = drink.radius;
       const size = Math.ceil(radius * 2 + 16);
       const canvas = document.createElement('canvas');
