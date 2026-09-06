@@ -31,6 +31,12 @@ export class Drink extends Phaser.Physics.Matter.Sprite {
     this.setPosition(x, y);
     this.setOrigin(0.5, 0.5);
 
+    // Display size is tied to the physics radius, not the source texture's
+    // native pixel size, so a dropped-in artwork file at any resolution
+    // (see AssetGenerator/BootScene) lines up with the same physics body as
+    // the procedurally-generated fallback.
+    this.setDisplaySize(def.radius * 2 + 16, def.radius * 2 + 16);
+
     scene.add.existing(this);
   }
 

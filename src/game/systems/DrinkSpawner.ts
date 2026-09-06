@@ -36,6 +36,8 @@ export class DrinkSpawner {
       'drink_0'
     );
     this.previewSprite.setDepth(10);
+    const initialRadius = getDrinkByLevel(0).radius;
+    this.previewSprite.setDisplaySize(initialRadius * 2 + 16, initialRadius * 2 + 16);
 
     this.setupInput();
   }
@@ -146,6 +148,7 @@ export class DrinkSpawner {
   private updatePreviewTexture(): void {
     const def = getDrinkByLevel(this.currentLevel);
     this.previewSprite.setTexture(`drink_${def.level}`);
+    this.previewSprite.setDisplaySize(def.radius * 2 + 16, def.radius * 2 + 16);
     this.previewSprite.setPosition(this.currentTargetX, GAME_CONFIG.SPAWN_Y);
   }
 
