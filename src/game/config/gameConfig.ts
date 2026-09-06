@@ -83,11 +83,17 @@ export const GAME_CONFIG = {
     DEFAULT_DENSITY: 0.002
   },
 
-  // Spawn probabilities (Weights sum to 100)
+  // Spawn probabilities (Weights sum to 100). Spread across 5 tiers rather
+  // than just 2-3: with only a couple of tiers in circulation, any two
+  // neighboring drinks have a high chance of matching by pure luck, so
+  // careless placement merges about as well as careful aiming. A wider pool
+  // makes matches something you have to set up on purpose.
   SPAWN_DISTRIBUTION: [
-    { level: 0, weight: 55 },
-    { level: 1, weight: 30 },
-    { level: 2, weight: 15 }
+    { level: 0, weight: 30 },
+    { level: 1, weight: 25 },
+    { level: 2, weight: 20 },
+    { level: 3, weight: 15 },
+    { level: 4, weight: 10 }
   ] as SpawnDistribution[],
 
   // LocalStorage Key
