@@ -47,10 +47,14 @@ export class Drink extends Phaser.Physics.Matter.Sprite {
       this.scene.matter.world.remove(this.body);
     }
 
+    // Grow 25% from whatever scale setDisplaySize() computed, not to a
+    // literal 1.25 — a custom artwork texture's native size rarely matches
+    // its on-board display size, so an absolute target would snap the
+    // sprite to a wrong (often much larger) size for the brief pop-out.
     this.scene.tweens.add({
       targets: this,
-      scaleX: 1.25,
-      scaleY: 1.25,
+      scaleX: this.scaleX * 1.25,
+      scaleY: this.scaleY * 1.25,
       alpha: 0,
       duration: 120,
       ease: 'Quad.easeOut',
