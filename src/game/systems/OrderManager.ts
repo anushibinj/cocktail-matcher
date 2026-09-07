@@ -224,13 +224,17 @@ export class OrderManager {
       this.onOrderFulfilled(order, drink);
     }
 
-    // 3. Animate Drink flying to the checkout ticket
+    // 3. Animate Drink flying to the checkout ticket. Shrinks to half of
+    // whatever scale setDisplaySize() computed for it, not to a literal
+    // 0.5 — a custom artwork texture's native size rarely matches its
+    // on-board display size, so an absolute target would snap the drink to
+    // a wrong (often much larger) size mid-flight.
     this.scene.tweens.add({
       targets: drink,
       x: targetX,
       y: targetY,
-      scaleX: 0.5,
-      scaleY: 0.5,
+      scaleX: drink.scaleX * 0.5,
+      scaleY: drink.scaleY * 0.5,
       duration: 500,
       ease: 'Cubic.easeInOut',
       onComplete: () => {
