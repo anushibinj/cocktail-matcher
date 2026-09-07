@@ -20,13 +20,18 @@ export class MenuScene extends Phaser.Scene {
     // Glowing main cocktail illustration (Tier 5 Tropical Punch)
     const logoDrink = this.add.sprite(0, -60, 'drink_5');
     logoDrink.setDisplaySize(140, 140);
+    const logoBaseScaleX = logoDrink.scaleX;
+    const logoBaseScaleY = logoDrink.scaleY;
 
-    // Idle floating bob animation
+    // Idle floating bob animation. Scales 8% up from the size setDisplaySize()
+    // computed, not to a literal 1.08 — a custom artwork texture's native
+    // resolution rarely matches its 140x140 display size, so an absolute
+    // target would snap the logo to a wrong (often much larger) size.
     this.tweens.add({
       targets: logoDrink,
       y: -75,
-      scaleX: 1.08,
-      scaleY: 1.08,
+      scaleX: logoBaseScaleX * 1.08,
+      scaleY: logoBaseScaleY * 1.08,
       duration: 1500,
       yoyo: true,
       repeat: -1,
