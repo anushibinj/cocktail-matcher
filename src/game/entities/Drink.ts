@@ -27,6 +27,12 @@ export class Drink extends Phaser.Physics.Matter.Sprite {
       density: GAME_CONFIG.PHYSICS.DEFAULT_DENSITY
     });
 
+    // Lock rotation: a circular body would otherwise spin freely from
+    // contact friction as it rolls/settles against other drinks and the
+    // walls. That's invisible with a symmetric procedural glass, but the
+    // front-facing artwork it can be swapped for should always sit upright.
+    this.setFixedRotation();
+
     // Explicitly reposition after setCircle replaces the body
     this.setPosition(x, y);
     this.setOrigin(0.5, 0.5);
