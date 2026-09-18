@@ -27,9 +27,21 @@ export class Drink extends Phaser.Physics.Matter.Sprite {
       density: GAME_CONFIG.PHYSICS.DEFAULT_DENSITY
     });
 
+    // Lock rotation: a circular body would otherwise spin freely from
+    // contact friction as it rolls/settles against other drinks and the
+    // walls. That's invisible with a symmetric procedural glass, but the
+    // front-facing artwork it can be swapped for should always sit upright.
+    this.setFixedRotation();
+
     // Explicitly reposition after setCircle replaces the body
     this.setPosition(x, y);
     this.setOrigin(0.5, 0.5);
+
+    // Display size is tied to the physics radius, not the source texture's
+    // native pixel size, so a dropped-in artwork file at any resolution
+    // (see AssetGenerator/BootScene) lines up with the same physics body as
+    // the procedurally-generated fallback.
+    this.setDisplaySize(def.radius * 2 + 16, def.radius * 2 + 16);
 
     scene.add.existing(this);
   }
@@ -41,10 +53,14 @@ export class Drink extends Phaser.Physics.Matter.Sprite {
       this.scene.matter.world.remove(this.body);
     }
 
+    // Grow 25% from whatever scale setDisplaySize() computed, not to a
+    // literal 1.25 — a custom artwork texture's native size rarely matches
+    // its on-board display size, so an absolute target would snap the
+    // sprite to a wrong (often much larger) size for the brief pop-out.
     this.scene.tweens.add({
       targets: this,
-      scaleX: 1.25,
-      scaleY: 1.25,
+      scaleX: this.scaleX * 1.25,
+      scaleY: this.scaleY * 1.25,
       alpha: 0,
       duration: 120,
       ease: 'Quad.easeOut',

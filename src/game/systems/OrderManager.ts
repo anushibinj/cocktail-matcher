@@ -3,6 +3,14 @@ import { Drink } from '../entities/Drink';
 import { ScoreManager } from './ScoreManager';
 import { AudioManager } from './AudioManager';
 import { getDrinkByLevel } from '../config/drinks';
+import { GAME_CONFIG } from '../config/gameConfig';
+
+// Y-coordinates below are tuned against the original 1280-tall reference
+// canvas; rescale so ticket placement and the "on the table" check keep
+// their relative position on devices where GAME_CONFIG.HEIGHT has been
+// stretched taller (see gameConfig.ts).
+const scaleY = (referenceValue: number): number =>
+  Math.round((referenceValue / 1280) * GAME_CONFIG.HEIGHT);
 
 export interface ToGoOrder {
   id: string;
@@ -73,7 +81,7 @@ export class OrderManager {
   private renderOrderTicket(order: ToGoOrder, slotIndex: number): void {
     // Slots at X: 270 (Left ticket) and 450 (Right ticket), Y: 135
     const slotX = slotIndex === 0 ? 280 : 440;
-    const slotY = 135;
+    const slotY = scaleY(135);
 
     const ticketGroup = this.scene.add.container(slotX, slotY);
 
@@ -167,7 +175,7 @@ export class OrderManager {
           !d.isMerging &&
           d.isDropped &&
           d.level === order.targetLevel &&
-          d.y < 800 // Must have travelled onto the table
+          d.y < scaleY(800) // Must have travelled onto the table
       );
 
       if (matchingDrink) {
@@ -184,7 +192,7 @@ export class OrderManager {
 
     const ticketView = this.ticketViews.get(order.id);
     const targetX = slotIndex === 0 ? 280 : 440;
-    const targetY = 145;
+    const targetY = scaleY(145);
 
     // 1. Show Green Checkmark on Ticket
     if (ticketView) {
@@ -216,13 +224,17 @@ export class OrderManager {
       this.onOrderFulfilled(order, drink);
     }
 
-    // 3. Animate Drink flying to the checkout ticket
+    // 3. Animate Drink flying to the checkout ticket. Shrinks to half of
+    // whatever scale setDisplaySize() computed for it, not to a literal
+    // 0.5 — a custom artwork texture's native size rarely matches its
+    // on-board display size, so an absolute target would snap the drink to
+    // a wrong (often much larger) size mid-flight.
     this.scene.tweens.add({
       targets: drink,
       x: targetX,
       y: targetY,
-      scaleX: 0.5,
-      scaleY: 0.5,
+      scaleX: drink.scaleX * 0.5,
+      scaleY: drink.scaleY * 0.5,
       duration: 500,
       ease: 'Cubic.easeInOut',
       onComplete: () => {

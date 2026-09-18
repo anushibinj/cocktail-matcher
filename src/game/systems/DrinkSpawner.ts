@@ -36,6 +36,8 @@ export class DrinkSpawner {
       'drink_0'
     );
     this.previewSprite.setDepth(10);
+    const initialRadius = getDrinkByLevel(0).radius;
+    this.previewSprite.setDisplaySize(initialRadius * 2 + 16, initialRadius * 2 + 16);
 
     this.setupInput();
   }
@@ -146,15 +148,24 @@ export class DrinkSpawner {
   private updatePreviewTexture(): void {
     const def = getDrinkByLevel(this.currentLevel);
     this.previewSprite.setTexture(`drink_${def.level}`);
+    this.previewSprite.setDisplaySize(def.radius * 2 + 16, def.radius * 2 + 16);
     this.previewSprite.setPosition(this.currentTargetX, GAME_CONFIG.SPAWN_Y);
   }
 
   private popInPreview(): void {
+    // Capture the scale setDisplaySize() computed for the current texture
+    // before zeroing it out — tweening to a literal 1 only happened to work
+    // when every drink texture was procedurally generated at exactly its
+    // display size (so scale was always 1 anyway). A custom artwork file at
+    // a different native resolution needs its own computed scale as the
+    // animation target, not 1.
+    const targetScaleX = this.previewSprite.scaleX;
+    const targetScaleY = this.previewSprite.scaleY;
     this.previewSprite.setScale(0);
     this.scene.tweens.add({
       targets: this.previewSprite,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: targetScaleX,
+      scaleY: targetScaleY,
       duration: 200,
       ease: 'Back.easeOut',
       onUpdate: () => {
