@@ -125,6 +125,18 @@ export class GameScene extends Phaser.Scene {
     );
 
     this.spawner.init();
+
+    // Auto-pause when the tab or app goes to the background mid-game
+    this.game.events.on(Phaser.Core.Events.HIDDEN, this.handleHidden, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.game.events.off(Phaser.Core.Events.HIDDEN, this.handleHidden, this);
+    });
+  }
+
+  private handleHidden(): void {
+    if (this.isGameActive) {
+      this.handlePause();
+    }
   }
 
   public update(_time: number, delta: number): void {
