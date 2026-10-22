@@ -87,7 +87,9 @@ export class DrinkSpawner {
     this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       if (pointer.id !== this.armedPointerId) return;
       this.armedPointerId = null;
-      if (!this.isEnabled) return;
+      // Phaser reports an OS-cancelled touch (edge swipe, call overlay) as a
+      // pointerup with wasCanceled set; that is not a release to launch on.
+      if (!this.isEnabled || pointer.wasCanceled) return;
       this.launchCurrentDrink();
     });
 
@@ -100,7 +102,7 @@ export class DrinkSpawner {
   }
 
   // A second finger must not take over an aim in progress, but a gesture
-  // whose release never arrived (e.g. touchcancel) must not block new ones.
+  // whose release never reached the page must not block new ones.
   private isOtherArmedPointerDown(pointer: Phaser.Input.Pointer): boolean {
     if (this.armedPointerId === null || this.armedPointerId === pointer.id) return false;
     const armed = this.scene.input.manager.pointers.find(p => p.id === this.armedPointerId);
