@@ -1065,3 +1065,562 @@ Manual listening on desktop Chrome and Firefox and on an iPhone or iPad (needs r
 #### Out of scope
 
 Separate volume sliders (could follow). Replacing the BGM track.
+
+### Visual design (UI)
+
+### [UI001] Replace emoji glyph icons with drawn icons on high-contrast button bases
+
+- **Category:** UI
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/utils/AssetGenerator.ts`, `src/game/ui/HUD.ts`, `src/game/scenes/MenuScene.ts`, `src/game/ui/PauseModal.ts`, `src/game/systems/OrderManager.ts`
+- **Affected experience:** Gameplay, Accessibility
+- **Depends on:** ARCH001
+- **Blocks:** None
+- **Can be combined with:** A11Y004
+
+#### Evidence and current behavior
+
+Every icon is an emoji rendered as canvas text:
+- 🔊/🔇 and 🎵/🚫 (`HUD.ts:28, 41`; `MenuScene.ts:146, 160`);
+- ⏸ (`HUD.ts:54`);
+- 🔄 (`PauseModal.ts:122`);
+- 🍹 bullets (`PauseModal.ts:74`);
+- 🪙 (`OrderManager.ts:130`);
+- ✔ (`OrderManager.ts:199`).
+
+Their look depends on the OS emoji font: tofu boxes on fonts without coverage, and different art on Apple, Google and Microsoft. 🚫 for "music off" is not a recognisable convention.
+
+The button base `ui_btn_circle` is 15% white fill with a 40% white stroke (`AssetGenerator.generateUIElements`). It sits on the background canopy's alternating white and `#f87171` stripes (`generateBackground`, "Beach Canopy" block):
+- The HUD sound button (x=560) sits on a **white** stripe, so its circle nearly disappears.
+- The white ⏸ glyph on the red stripe (x=668) is about **2.8:1**, below WCAG 1.4.11's 3:1 for UI components.
+
+The 390×844 screenshots show the sound icon and pause glyph as faint marks.
+
+#### Problem and impact
+
+The most-used controls (pause, mute) are hard to see, render inconsistently across devices, and fail non-text contrast.
+
+#### Desired outcome
+
+All icons are drawn by `AssetGenerator` as vector-style textures: speaker, speaker-muted, music, music-muted, pause, restart, check and coin. They sit on an opaque button base whose boundary has at least 3:1 contrast against both canopy stripe colors, and each icon has at least 3:1 contrast against its own base.
+
+#### Implementation guidance
+
+Add `generateIcons()` to `AssetGenerator` (canvas paths, white on a dark `#14102d`-style disc with a light ring). Expose them as `icon_*` texture keys. Swap the `text` glyphs in HUD, Menu, Pause and OrderManager for sprites through the ARCH001 component. Keep emoji only in decorative copy if at all.
+
+#### Acceptance criteria
+
+- [ ] No emoji characters remain in UI controls (`grep -nP "[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]" src` returns only intentional decorative copy, or nothing).
+- [ ] Measured contrast: button outer edge vs each canopy stripe ≥ 3:1, and icon vs button base ≥ 3:1 (record the values in the PR).
+- [ ] Muted states are visually distinct without color alone (slash or cross shape).
+- [ ] Icons render identically in Chromium on Linux, Windows and macOS (screenshots).
+
+#### Validation plan
+
+Screenshots at 390×844 and 1440×900. Contrast measured with a color picker plus a WCAG contrast calculator. `pnpm run build`.
+
+#### Out of scope
+
+Target size (A11Y004, combinable). Fonts (UI002).
+
+### [UI002] Load one consistent display font before any text is drawn
+
+- **Category:** UI
+- **Priority:** P3
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `index.html`, `src/game/scenes/BootScene.ts`, `src/game/scenes/*.ts`, `src/game/ui/*.ts`, `src/game/systems/ScoreManager.ts`, `src/game/systems/OrderManager.ts`
+- **Affected experience:** Gameplay, Onboarding
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** A11Y005
+
+#### Evidence and current behavior
+
+Every `add.text` call repeats `fontFamily: 'Segoe UI, system-ui, sans-serif'` inline (more than 30 occurrences across scenes, UI and systems). `index.html:31` lists `'Quicksand'`, which is never loaded. Text therefore renders in Segoe UI on Windows, San Francisco on Apple and Roboto or DejaVu elsewhere. Each has different widths and heights, and the absolute layouts (for example the ticket text and score cards) were tuned for one of them.
+
+#### Problem and impact
+
+The friendly "cartoon tropical" look asked for in PRD §13 depends on the platform, and labels can overflow or misalign on other fonts.
+
+#### Desired outcome
+
+One rounded display font, self-hosted as woff2 with an appropriate license, is loaded before `MenuScene` renders. All text styles come from a shared `TEXT_STYLES` map.
+
+#### Implementation guidance
+
+Put the font in `public/fonts/` and add `@font-face` in `index.html`. In `BootScene`, await `document.fonts.load('700 28px "<Font>"')` before `scene.start('MenuScene')`. Create `src/game/config/textStyles.ts` and replace the inline style objects. Keep a system fallback.
+
+#### Acceptance criteria
+
+- [ ] Menu, HUD, modals, tickets and popups all render in the chosen font on Chromium/Linux, Windows and macOS (screenshots).
+- [ ] No fallback-font flash on the menu after a cold load.
+- [ ] Font payload ≤ 60 kB woff2 (subset if needed).
+- [ ] No `fontFamily:` literals remain outside `textStyles.ts`.
+
+#### Validation plan
+
+Throttled ("Slow 4G") cold load in DevTools to check for a flash. Screenshots at 390×844. `pnpm run build`.
+
+#### Out of scope
+
+Text size changes (A11Y005).
+
+### [UI003] Investigate rendering sharpness on high-DPI phones
+
+- **Category:** UI
+- **Priority:** P3
+- **Effort:** M
+- **Confidence:** Medium
+- **Affected files:** `src/main.ts`, `src/game/config/gameConfig.ts`, `src/utils/AssetGenerator.ts`
+- **Affected experience:** Gameplay, Performance
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+The canvas backing store is always 720 px wide (measured: `720×1558` at 390×844). On a DPR-3 phone that is shown on 1,170 physical pixels, about **1.6× upscaled**. Procedural drink textures are generated at 1× display size (`size = radius*2 + 16`, `AssetGenerator.generateDrinkTextures`), and Phaser 3.90 has no `resolution` game option. Whether this looks noticeably soft on real devices needs runtime validation. The DPR-3 headless screenshot is acceptable but visibly softer on text edges.
+
+#### Problem and impact
+
+A polished casual game relies on crisp edges. Softness is most visible on small text (tickets, labels).
+
+#### Desired outcome
+
+A measured decision: either render at a higher internal resolution (with an FPS budget confirmed on a mid-range Android), or document why 1× is kept.
+
+#### Implementation guidance
+
+Spike option A: scale the virtual canvas by `k = min(devicePixelRatio, 2)` (WIDTH = 720k) and set `cameras.main.setZoom(k)` so game coordinates stay unchanged. Check that input mapping and Matter coordinates still line up. Option B: generate textures at 2× and keep `setDisplaySize`. Text gets `setResolution(k)`. Measure the frame time with a 30-drink board.
+
+#### Acceptance criteria
+
+- [ ] A written comparison (screenshots plus a frame-time table on at least one real phone) is attached to the PR or added to `CLAUDE.md`.
+- [ ] If adopted: text and glass edges are visibly sharper at DPR 3, game logic coordinates are unchanged, and 60 fps holds on the test device with 30 drinks.
+- [ ] If rejected: rationale recorded and no code change.
+
+#### Validation plan
+
+Real-device test (needs runtime validation). Playwright DPR-3 screenshots before and after. `pnpm run build`.
+
+#### Out of scope
+
+Replacing procedural art with image assets.
+
+### [UI004] Unify the menu composition and theme colors with the beach art
+
+- **Category:** UI
+- **Priority:** P3
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/scenes/MenuScene.ts`, `index.html`, `public/manifest.webmanifest`, `src/main.ts`
+- **Affected experience:** Onboarding, Responsive
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** UX010, BUG009
+
+#### Evidence and current behavior
+
+- **Menu spacing.** The menu places elements at fixed fractions of the height: title at 0.28, best card at 0.54, Play at 0.68, tip at 0.82 (`MenuScene.ts:18, 70, 90, 128`). On a 390×844 phone (canvas 1558 tall) this leaves large empty sand bands between the subtitle and the best card and below the tip (screenshot `phone-390x844-menu`).
+- **Letterbox color.** The letterbox is a dark navy gradient (`index.html:30`) next to a bright beach scene, framed by a heavy `box-shadow`, so on tablet and desktop the game looks pasted onto an unrelated page.
+- **Theme colors disagree:**
+  - `<meta name="theme-color">` is `#ff7e5f` (`index.html:8`);
+  - the manifest has `theme_color: #ff006e` and `background_color: #1d1135`;
+  - Phaser `backgroundColor` is `#1d1135` (`main.ts:12`).
+- **Low-contrast tip.** The tip text is `#cfcbe8` with a 2 px stroke on yellow sand.
+
+#### Problem and impact
+
+The first screen looks sparse, and the browser chrome and splash colors clash with the art, which weakens the "coherent and intentional" bar from PRD Milestone 6.
+
+#### Desired outcome
+
+The menu is vertically balanced at 9:16 through 9:21. The letterbox and theme colors come from one palette that complements the beach (for example a sunset gradient). The tip text meets 4.5:1.
+
+#### Implementation guidance
+
+Lay out the menu from the top and bottom safe edges and cluster logo, title, best card and Play in the upper two-thirds. Use the freed space for the ladder preview if UX010 lands. Define palette constants once and reuse them in `index.html`, the manifest and `main.ts`.
+
+#### Acceptance criteria
+
+- [ ] At 390×844 and 360×640, no vertical gap between consecutive menu elements exceeds 20% of the canvas height.
+- [ ] `theme-color`, manifest `theme_color`/`background_color` and the page background use the same documented palette values.
+- [ ] The menu tip contrast is ≥ 4.5:1 (or the tip is moved onto a panel).
+
+#### Validation plan
+
+Screenshots at 360×640, 390×844, 768×1024 and 1440×900. `pnpm run build`.
+
+#### Out of scope
+
+New illustration assets. The PWA icons (BUG009).
+
+### Accessibility (A11Y)
+
+### [A11Y001] Make the core loop playable with a keyboard
+
+- **Category:** A11Y
+- **Priority:** P1
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/game/systems/DrinkSpawner.ts`, `src/game/scenes/GameScene.ts`, `src/game/ui/HUD.ts`
+- **Affected experience:** Gameplay, Accessibility
+- **Depends on:** BUG003
+- **Blocks:** None
+- **Can be combined with:** UX003
+
+#### Evidence and current behavior
+
+No `input.keyboard` usage exists in `src/`. Aiming and launching are pointer-only (`DrinkSpawner.setupInput`, lines 57-73), and pause is a pointer-only HUD sprite (`HUD.ts:52-62`). The only keyboard interaction in the codebase is `AudioManager`'s audio-unlock `keydown` listener (`AudioManager.ts:61`).
+
+#### Problem and impact
+
+Keyboard-only and switch users can't play at all (WCAG 2.1.1 Keyboard, Level A). Desktop players also expect arrow keys and Space in this genre.
+
+#### Desired outcome
+
+- ←/→ (and A/D) move the aim in steps; holding the key moves it continuously, and Shift moves it in fine steps.
+- Space, Enter or ↑ launches.
+- Esc or P toggles pause.
+- Keyboard and pointer can be mixed freely.
+- A small "← → aim · Space launch · Esc pause" hint shows on devices with a fine pointer.
+
+#### Implementation guidance
+
+Add `handleAimDelta(dx)` and a public `launch()` to `DrinkSpawner` that reuse the existing clamp, cooldown and guard logic (BUG002/BUG003 state). Register keys in `GameScene` with `this.input.keyboard.addKeys` and clean them up on shutdown. Respect the game phase (ignore while paused or game over). Make the hold speed frame-rate independent (use `delta`).
+
+#### Acceptance criteria
+
+- [ ] From Play, a full game can be played, paused, resumed and lost using only the keyboard.
+- [ ] Aim never leaves the clamped range for the current drink's radius.
+- [ ] Holding a key moves aim at a constant speed independent of frame rate (same distance at 30 and 60 fps, ±5%).
+- [ ] Launch respects the 450 ms cooldown, and key auto-repeat cannot queue extra launches.
+- [ ] Keys do nothing while a modal is open, except Esc, which resumes from pause (coordinated with A11Y002).
+- [ ] The keyboard hint is shown on desktop and hidden on touch-only devices.
+
+#### Validation plan
+
+Manual keyboard-only run at 1440×900. Playwright `page.keyboard` cases in TEST002. `pnpm run build`.
+
+#### Out of scope
+
+Menu and modal keyboard navigation (A11Y002). Gamepad support.
+
+### [A11Y002] Keyboard navigation, visible focus and focus management for menu and modals
+
+- **Category:** A11Y
+- **Priority:** P1
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/game/ui/` (ARCH001 component), `src/game/scenes/MenuScene.ts`, `src/game/ui/PauseModal.ts`, `src/game/ui/GameOverModal.ts`, `src/game/ui/HUD.ts`
+- **Affected experience:** Onboarding, Completion, Replay, Accessibility
+- **Depends on:** ARCH001
+- **Blocks:** None
+- **Can be combined with:** UX009
+
+#### Evidence and current behavior
+
+All menu and modal controls are Phaser sprites, text or zones activated only by `pointerdown`:
+- Menu Play (`MenuScene.ts:118`) and the audio toggles (lines 150, 164);
+- Pause Resume, Restart and Menu (`PauseModal.ts:115, 130, 145`) and the toggles (line 210);
+- Game Over Play Again and Menu (`GameOverModal.ts:109, 126`).
+
+There is no focus state or focus indicator, and Tab, Enter and Esc do nothing. When a modal opens, nothing receives focus, and nothing traps focus in it.
+
+#### Problem and impact
+
+Keyboard users can't start a game, resume or replay (WCAG 2.1.1, 2.4.3 Focus Order, 2.4.7 Focus Visible, and 2.4.11 Focus Not Obscured in WCAG 2.2).
+
+#### Desired outcome
+
+- Every interactive control is reachable with Tab/Shift+Tab (and arrow keys within a modal) and activates with Enter or Space.
+- A clearly visible focus ring (≥ 2 px, ≥ 3:1 contrast) marks the focused control.
+- Opening a modal focuses its primary action, and focus stays trapped in the modal.
+- Esc resumes from pause.
+- Closing the pause modal returns focus to the pause button.
+- The menu's initial focus is Play.
+
+#### Implementation guidance
+
+Implement a small `FocusGroup` helper alongside the ARCH001 `UIButton`. It keeps an ordered list of buttons, the current index and a focus-ring graphic, and binds keyboard keys while active. Each modal or scene owns one group, and opening a modal pushes a group onto a stack. Keep pointer hover and focus in sync.
+
+#### Acceptance criteria
+
+- [ ] Menu: Tab cycles Play → Sound → Music, Enter on Play starts the game, and Enter on the toggles flips them.
+- [ ] Pause: opening focuses Resume; Tab cycles every control without escaping to the game; Esc resumes; focus returns to the pause button.
+- [ ] Game Over: opening focuses Play Again, and Enter restarts without launching a drink (BUG003).
+- [ ] The focus ring is visible on every control, with ≥ 3:1 contrast against both the card background and the button.
+- [ ] Mouse and touch behavior unchanged.
+
+#### Validation plan
+
+Keyboard-only walkthrough at 1440×900. Playwright `page.keyboard.press('Tab')` sequences in TEST002 with screenshot checks of the focus ring. `pnpm run build`.
+
+#### Out of scope
+
+Screen-reader exposure of controls (A11Y003). In-game aiming keys (A11Y001).
+
+### [A11Y003] Give the canvas an accessible name and announce key game events
+
+- **Category:** A11Y
+- **Priority:** P2
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `index.html`, `src/main.ts`, `src/game/scenes/GameScene.ts`, new `src/a11y/Announcer.ts`
+- **Affected experience:** Accessibility
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+The page has only `<div id="game-container">` (`index.html:53`), into which Phaser injects an unlabeled `<canvas>`. There are no ARIA attributes, live regions or text alternatives anywhere. Score, game over, new best and order completion exist only as pixels.
+
+#### Problem and impact
+
+Screen-reader users get no information about what the page is or what is happening (WCAG 1.1.1 Non-text Content, 4.1.2 Name/Role/Value, 4.1.3 Status Messages). Low-vision players who use a reader as a supplement also lose the key status changes.
+
+#### Desired outcome
+
+- The canvas exposes a role and accessible name, for example `role="application"` or `img` with `aria-label="Cocktail Merge game board"`, and an `aria-describedby` pointing to concise rules.
+- A visually hidden `aria-live="polite"` region announces: game started, the current and next drink after each launch (throttled), merges into a new tier, order completed, new best score, and game over with the final score.
+- Danger start is announced in an `assertive` region.
+- Announcements respect a rate limit (at most one polite message per 1.5 s, latest wins).
+
+#### Implementation guidance
+
+Create an `Announcer` singleton that writes to two hidden DOM nodes added in `index.html` (visually hidden CSS, not `display:none`). Emit announcements from `GameScene` callbacks that already exist (score, merge, order, game over), plus the UX002 danger hook if present. Don't mirror the whole UI in the DOM. Full non-visual play of a physics game is out of scope.
+
+#### Acceptance criteria
+
+- [ ] With VoiceOver or NVDA, landing on the page announces the game name and short instructions.
+- [ ] Game over announces "Game over. Score N." and, when applicable, "New best score."
+- [ ] Merging into a tier not yet reached this run announces the drink name. Routine merges are not announced individually.
+- [ ] No more than one polite announcement per 1.5 s in a 60 s play sample.
+- [ ] Hidden live regions take no visible space and are not focusable.
+
+#### Validation plan
+
+Manual with NVDA in Chrome or Firefox (Windows) and VoiceOver on macOS or iOS (needs runtime validation; not available in this review). Playwright can assert live-region text content in TEST002. `pnpm run build`.
+
+#### Out of scope
+
+Making aiming or physics perceivable non-visually. DOM replicas of buttons (A11Y002 handles keyboard).
+
+### [A11Y004] Enlarge touch targets to at least 44 CSS px on phones
+
+- **Category:** A11Y
+- **Priority:** P1
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/ui/HUD.ts`, `src/game/scenes/MenuScene.ts`, `src/game/ui/PauseModal.ts`, `src/game/ui/GameOverModal.ts`
+- **Affected experience:** Gameplay, Replay, Accessibility
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** UI001, ARCH001, UX008
+
+#### Evidence and current behavior
+
+The canvas is 720 units wide, so one canvas unit is 0.54 CSS px on a 390 px phone and 0.50 CSS px on a 360 px phone. Current hit areas:
+
+| Control | Canvas size | CSS px at 390 / 360 wide |
+|---|---|---|
+| HUD sound, music, pause (`HUD.ts:26, 39, 52`) | 42×42 | ≈ 22.8 / 21 |
+| Menu sound, music (`MenuScene.ts:144, 158`) | 48×48 | ≈ 26 / 24 |
+| Pause Sound FX / Music toggles (`PauseModal.ts:208`) | 100×36 | height ≈ 19.5 / 18 |
+| "Main Menu" text links (`PauseModal.ts:138`, `GameOverModal.ts:117`) | text bounds, 16–18 px font | ≈ 13 tall |
+| "Restart Game" text link (`PauseModal.ts:122`) | text bounds, 16–18 px font | ≈ 13 tall |
+
+The HUD buttons are only 54 canvas units apart (560 / 614 / 668). WCAG 2.2 2.5.8 (AA) requires 24×24 CSS px or equivalent spacing. Platform guidance (Apple 44 pt, Material 48 dp) and PRD §17 ("Important controls must remain easy to tap") call for more.
+
+#### Problem and impact
+
+Pause, mute and modal secondary actions are easy to miss or mis-tap on phones. Combined with BUG003 and UX009, mis-taps cost drinks or whole runs.
+
+#### Desired outcome
+
+Every interactive control has a hit area of at least 88×88 canvas units (≥ 44 CSS px at 360 px width), even if the visual is smaller. Adjacent hit areas don't overlap. Text links become full-width buttons.
+
+#### Implementation guidance
+
+Use `setInteractive(new Phaser.Geom.Rectangle(...), Phaser.Geom.Rectangle.Contains)` or invisible zones sized from a single `MIN_TARGET` constant (88 canvas units). Re-space the HUD cluster (for example 96 apart, possibly in two corners). Convert "Restart Game" and "Main Menu" to secondary pill buttons. If ARCH001 exists, enforce the minimum in the component.
+
+#### Acceptance criteria
+
+- [ ] Each control's interactive bounds (`input.hitArea` scaled) are ≥ 88×88 canvas units. Verify with Phaser's input debug (`this.input.enableDebug(obj)`) or a unit check.
+- [ ] No two hit areas overlap.
+- [ ] At 360×640, every control is tappable without triggering a neighbour (manual check with touch emulation).
+- [ ] Visual layout fits at 360×640 and 390×844 without overlapping the board or tickets.
+
+#### Validation plan
+
+Turn on the DX004 debug overlay to draw hit areas, then take screenshots at 360×640 and 390×844. Manual touch testing in DevTools device mode. `pnpm run build`.
+
+#### Out of scope
+
+Icon artwork (UI001). Keyboard focus (A11Y002).
+
+### [A11Y005] Raise text size and contrast to legible levels at phone scale
+
+- **Category:** A11Y
+- **Priority:** P1
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/systems/OrderManager.ts`, `src/game/ui/HUD.ts`, `src/game/ui/PauseModal.ts`, `src/game/ui/GameOverModal.ts`, `src/game/scenes/MenuScene.ts`
+- **Affected experience:** Gameplay, Accessibility
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** UI002
+
+#### Evidence and current behavior
+
+At 390 px width, one canvas unit is 0.54 CSS px. Rendered text sizes:
+
+| Text | Canvas size | CSS px |
+|---|---|---|
+| Order ticket "Order #N" (`OrderManager.ts:112-116`) | 10 | **5.4** |
+| Ticket reward (line 130-135) | 11 | 5.9 |
+| Ticket header "To-Go Order" (line 104-109) | 12 | 6.5 |
+| HUD "SCORE" / "BEST" labels (`HUD.ts:77, 95`) | 13 | 7.0 |
+| Pause toggle labels (`PauseModal.ts:182-187`) | 14 | 7.6 |
+| Pause help body (line 74-80) | 15 | 8.1 |
+| Menu tip (`MenuScene.ts:128`) | 16 | 8.7 |
+
+Contrast failures:
+- `#888888` ticket number on white: **3.54:1**.
+- `#b06b00` reward text on `#fff3b0`: about **3.8:1**.
+
+Both are below 4.5:1 (WCAG 1.4.3). The ticket text is unreadable in the 390×844 screenshot.
+
+#### Problem and impact
+
+The To-Go mechanic depends on reading the ticket, and players can't read it on a phone. Instructions in the pause modal are tiny. PRD §13 asks for "readable on small screens".
+
+#### Desired outcome
+
+At 360 px width:
+- body and instructional text ≥ 14 CSS px (≈ 28 canvas units);
+- secondary labels ≥ 12 CSS px (≈ 24 canvas units);
+- all text ≥ 4.5:1 (≥ 3:1 for text ≥ 18.66 px bold).
+
+Tickets show the drink thumbnail large and readable; drop decorative text ("Order #N") if space is short.
+
+#### Implementation guidance
+
+Define minimum sizes in a shared text-style module (UI002 if it lands). Redesign the ticket at a larger size or simplify it: thumbnail, drink name and reward. Recheck that the two slots (x=280/440) still fit; widen the spacing if needed, or anchor them via ARCH004 constants. Darken the gray and reward colors.
+
+#### Acceptance criteria
+
+- [ ] No `fontSize` below 24 canvas units anywhere in `src/` (grep check), and no instructional text below 28.
+- [ ] Every text/background pair meets 4.5:1, or 3:1 for large bold text. List the measured pairs in the PR.
+- [ ] Tickets, HUD and modals fit without clipping at 360×640 and 390×844.
+- [ ] A drink name is visible on each order ticket (no thumbnail-only identification).
+
+#### Validation plan
+
+Screenshots at 360×640 and 390×844, checked with a contrast calculator. A grep for `fontSize: '(1[0-9]|[0-9])px'`. `pnpm run build`.
+
+#### Out of scope
+
+Font family (UI002). Tutorial copy (CONTENT001).
+
+### [A11Y006] Respect reduced-motion preferences
+
+- **Category:** A11Y
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/systems/MergeManager.ts`, `src/game/scenes/MenuScene.ts`, `src/game/ui/GameOverModal.ts`, `src/game/entities/Board.ts`, `src/game/ui/HUD.ts`, `src/storage/SaveManager.ts`, `src/types/game.ts`, `src/game/ui/PauseModal.ts`
+- **Affected experience:** Accessibility, Gameplay
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+There is no `prefers-reduced-motion` check anywhere (no `matchMedia` in `src/`), even though PRD §15 says "Respect reduced-motion preferences". Motion sources include:
+- camera shake on merges of tier 5 and above (`MergeManager.ts:184-187`);
+- the infinite Play-button pulse (`MenuScene.ts:108-116`) and logo bob (lines 30-39);
+- the infinite "new best" pulse (`GameOverModal.ts:61-68`);
+- the danger-line flash (`Board.ts:85-91`);
+- the score pulse (`HUD.ts:120-126`);
+- pop-in scale tweens on modals, tickets and previews.
+
+#### Problem and impact
+
+Screen shake and constant pulsing can cause discomfort for people with vestibular disorders (WCAG 2.3.3 AAA, plus the PRD requirement).
+
+#### Desired outcome
+
+When the OS requests reduced motion (or an in-game "Reduce motion" setting is on):
+- no camera shake;
+- no infinite pulsing or bobbing;
+- pop-ins become short fades;
+- danger is shown as a steady color change rather than flashing.
+
+Gameplay physics are unchanged.
+
+#### Implementation guidance
+
+- Add `reduceMotion: boolean | null` to `SaveData` (null means follow the OS) and a toggle in the pause settings.
+- Add a `Motion.isReduced()` helper reading `matchMedia('(prefers-reduced-motion: reduce)')` and the save, with a change listener.
+- Gate each effect listed above through the helper.
+
+#### Acceptance criteria
+
+- [ ] With Chrome DevTools "Emulate CSS prefers-reduced-motion: reduce", a full game shows no shake and no repeating tweens. Check `this.tweens.getTweens()` for `repeat === -1`.
+- [ ] The in-game toggle overrides the OS setting both ways and persists across reload.
+- [ ] Merge feedback is still clear: particles, sound and score popup remain.
+
+#### Validation plan
+
+Playwright `page.emulateMedia({ reducedMotion: 'reduce' })` plus a check of active tweens. Manual check. `pnpm run build`.
+
+#### Out of scope
+
+Particle density options.
+
+### [A11Y007] Stop disabling browser zoom globally
+
+- **Category:** A11Y
+- **Priority:** P3
+- **Effort:** XS
+- **Confidence:** Medium
+- **Affected files:** `index.html`
+- **Affected experience:** Accessibility, Responsive
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** BUG005, BUG009
+
+#### Evidence and current behavior
+
+`index.html:5` sets `maximum-scale=1.0, user-scalable=no`, and lines 26-35 apply `touch-action: none` and `overflow: hidden` to `html, body`. Together these block pinch zoom everywhere, including the letterbox margins and any future DOM overlays (A11Y003, UX007).
+
+#### Problem and impact
+
+Low-vision users can't magnify the game (WCAG 1.4.4 Resize Text). iOS ignores `user-scalable=no`, but Android browsers may honor it. The gesture blocking the game needs belongs on the canvas, not the whole page.
+
+#### Desired outcome
+
+Pinch zoom works outside the canvas. Gameplay gestures on the canvas are still captured without scrolling, zooming or double-tap zoom.
+
+#### Implementation guidance
+
+Remove `maximum-scale` and `user-scalable=no`. Move `touch-action: none` to `canvas` (and the container). Keep `overscroll-behavior: none` on the body. Validate on iOS that rapid taps on the canvas don't double-tap-zoom.
+
+#### Acceptance criteria
+
+- [ ] The viewport meta has no `maximum-scale` or `user-scalable=no`.
+- [ ] On Android Chrome, pinch on the letterbox margin zooms the page. Pinch or drag on the canvas does not scroll or zoom.
+- [ ] On iOS Safari, rapid launches don't trigger double-tap zoom (needs device validation).
+
+#### Validation plan
+
+Real-device check on Android and iOS (needs runtime validation). DevTools device-mode regression. `pnpm run build`.
+
+#### Out of scope
+
+An in-game UI scale setting.
