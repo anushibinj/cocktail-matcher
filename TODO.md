@@ -1139,7 +1139,7 @@ Target size (A11Y004, combinable). Fonts (UI002).
 
 #### Evidence and current behavior
 
-Every `add.text` call repeats `fontFamily: 'Segoe UI, system-ui, sans-serif'` inline (more than 30 occurrences across scenes, UI and systems). `index.html:31` lists `'Quicksand'`, which is never loaded. Text therefore renders in Segoe UI on Windows, San Francisco on Apple and Roboto or DejaVu elsewhere. Each has different widths and heights, and the absolute layouts (for example the ticket text and score cards) were tuned for one of them.
+Every `add.text` call repeats `fontFamily: 'Segoe UI, system-ui, sans-serif'` inline (30 occurrences across 7 files). `index.html:31` lists `'Quicksand'`, which is never loaded. Text therefore renders in Segoe UI on Windows, San Francisco on Apple and Roboto or DejaVu elsewhere. Each has different widths and heights, and the absolute layouts (for example the ticket text and score cards) were tuned for one of them.
 
 #### Problem and impact
 
@@ -1624,3 +1624,535 @@ Real-device check on Android and iOS (needs runtime validation). DevTools device
 #### Out of scope
 
 An in-game UI scale setting.
+
+### Performance (PERF)
+
+### [PERF001] Lazy-load and compress the 2.3 MB background-music file
+
+- **Category:** PERF
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/systems/AudioManager.ts`, `public/assets/audio/bgm.m4a`
+- **Affected experience:** Performance, Onboarding
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** UX011
+
+#### Evidence and current behavior
+
+`AudioManager.init()` runs in `BootScene` and immediately calls `initBgmAudio()`, which does `new Audio('./assets/audio/bgm.m4a')` (`AudioManager.ts:43, 68-76`). Confirmed at runtime: the browser requested `bgm.m4a` (HTTP 206) during boot, before any interaction and regardless of the music setting. `ffprobe` shows the file is 73.1 s of AAC-LC at **249 kb/s** stereo, **2.30 MB**. That is larger than the whole gzipped JS bundle (356 kB) by more than 6×.
+
+#### Problem and impact
+
+On mobile data, the first visit competes with the JS bundle for bandwidth and uses data even for players who disable music. PRD §3 goal 1 is "Load quickly", and PRD §23 asks to "keep assets reasonably compressed".
+
+#### Desired outcome
+
+BGM is fetched only when music is enabled *and* after the first user interaction. It is encoded at a bitrate suited to background music (for example 96–128 kb/s AAC, or Opus/WebM with an AAC fallback), so the file is ≤ 1.2 MB with no audible loop seam.
+
+#### Implementation guidance
+
+Create the audio element (or the decoded buffer, if UX011 uses Web Audio) lazily in `startBgm()`, with `preload = 'none'` until then. Re-encode with ffmpeg, for example `ffmpeg -i bgm.m4a -c:a aac -b:a 112k bgm.m4a`. Check the loop point. Keep the old file out of the repo once replaced.
+
+#### Acceptance criteria
+
+- [ ] With music disabled in storage, a full session makes no request for the BGM file.
+- [ ] With music enabled, the first BGM request happens after the first pointer or key interaction.
+- [ ] The BGM file is ≤ 1.2 MB, and its loop is seamless by ear.
+- [ ] Music toggling still works after lazy init.
+
+#### Validation plan
+
+Playwright network log at 390×844 with music on and off. `ffprobe` on the new file. Listening check. `pnpm run build`.
+
+#### Out of scope
+
+Service-worker caching (PERF004). Changing the music.
+
+### [PERF002] Add Firebase Hosting cache headers for hashed assets and media
+
+- **Category:** PERF
+- **Priority:** P2
+- **Effort:** XS
+- **Confidence:** High
+- **Affected files:** `firebase.json`
+- **Affected experience:** Performance
+- **Depends on:** None
+- **Blocks:** PERF004
+- **Can be combined with:** SEC002
+
+#### Evidence and current behavior
+
+`firebase.json` has no `headers` section, so Firebase's default caching applies to every file (short-lived, revalidated). Vite emits content-hashed bundles (`dist/assets/index-<hash>.js`) that are safe to cache forever. `bgm.m4a` and the icons are stable. README line 95 claims "Firebase Hosting serves the `dist/` directory with proper cache headers", which isn't configured. This is confirmed by config inspection; the deployed headers were not checked.
+
+#### Problem and impact
+
+Returning players re-validate or re-download the 1.5 MB bundle and 2.3 MB audio more often than needed. Slower repeat loads, wasted data.
+
+#### Desired outcome
+
+- `assets/**/*.js` and `*.css` (hashed): `Cache-Control: public, max-age=31536000, immutable`.
+- Audio, fonts and icons: long max-age with a revalidation strategy, or versioned filenames.
+- `index.html` and `manifest.webmanifest`: `no-cache`.
+
+#### Implementation guidance
+
+Add `hosting.headers` globs in `firebase.json`. If audio and icons keep stable filenames, use a moderate `max-age` (for example 7 days) or add hashing by importing them via Vite. Combine with SEC002 so all headers are reviewed in one change.
+
+#### Acceptance criteria
+
+- [ ] On a Firebase preview channel, `curl -I` shows the specified `Cache-Control` for `index.html`, a hashed JS file, `bgm.m4a` and an icon.
+- [ ] A redeploy with changed code is picked up on the next load (index revalidates).
+
+#### Validation plan
+
+`firebase hosting:channel:deploy test-headers`, then `curl -I` on each asset class. Not runnable in this review (needs credentials).
+
+#### Out of scope
+
+Service worker (PERF004). Security headers (SEC002).
+
+### [PERF003] Split Phaser into its own cached chunk and trim the bundle
+
+- **Category:** PERF
+- **Priority:** P3
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `vite.config.ts`, `src/main.ts`
+- **Affected experience:** Performance
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+`pnpm run build` outputs a single `index-*.js` of **1,542.17 kB** (gzip 355.76 kB). Vite warns that it exceeds `chunkSizeWarningLimit: 1500`, a limit already raised from the default 500 in `vite.config.ts:8`. Phaser makes up almost all of this, and every app change invalidates the whole cached file. The full Phaser build includes systems the game doesn't use (Arcade Physics, the Spine and Facebook plugins, etc.); whether a custom build is worth it needs measurement.
+
+#### Problem and impact
+
+Every deploy forces returning players to re-download about 356 kB gzip, though only a few kB of game code changed. The warning has been silenced rather than addressed.
+
+#### Desired outcome
+
+Phaser lives in a separate vendor chunk with a stable hash across app-only changes. The app chunk is small (≤ 100 kB). The chunk-size limit is back near the default, or justified.
+
+#### Implementation guidance
+
+Add `build.rollupOptions.output.manualChunks: { phaser: ['phaser'] }`. Optionally evaluate importing a lighter Phaser entry or a custom build (`phaser/src/phaser-core` plus the Matter plugin) and measure the gzip difference before adopting it. Don't code-split the scenes; they are tiny.
+
+#### Acceptance criteria
+
+- [ ] The build emits a separate `phaser-*.js` chunk, and an app-only code change leaves its filename unchanged.
+- [ ] The app chunk is ≤ 100 kB minified.
+- [ ] No chunk-size warning with `chunkSizeWarningLimit` ≤ 1600, or the PR documents why the vendor chunk exceeds it.
+- [ ] Total gzip transfer doesn't increase.
+
+#### Validation plan
+
+`pnpm run build` twice, before and after a trivial app change, comparing hashes and sizes. Smoke-play in `pnpm run preview`.
+
+#### Out of scope
+
+Replacing Phaser.
+
+### [PERF004] Make the game work offline after the first load (service worker)
+
+- **Category:** PERF
+- **Priority:** P2
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `vite.config.ts`, `package.json`, `src/main.ts`, `public/manifest.webmanifest`, `firebase.json`
+- **Affected experience:** Performance, Replay
+- **Depends on:** PERF002, BUG009
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+PRD §3 goal 17 and §22 require "cache/static assets for offline play after initial load". README line 19 claims "PWA & Offline Ready". There is no service worker: no `serviceWorker.register` in `src/` or `index.html`, and no SW file in `public/` or the build output. The game itself needs no network after load (all art is procedural, saves are in `localStorage`), so it is an ideal offline candidate.
+
+#### Problem and impact
+
+Installed-PWA players on a plane or a flaky connection get the browser offline page instead of a game that would otherwise run fully offline. The README promise is false.
+
+#### Desired outcome
+
+After one online visit, the game loads and plays fully offline, including BGM if it was enabled. New deploys are picked up on the next online launch, with a gentle "Update ready" toast or silent activation on the menu.
+
+#### Implementation guidance
+
+Use `vite-plugin-pwa` (a new devDependency) with `generateSW`. Precache `index.html`, the JS chunks, the manifest and icons. Use runtime cache-first for `bgm.*`. Register with `registerType: 'autoUpdate'` or a prompt that is only shown on the menu (never mid-game). Make sure `sw.js` is served `no-cache` (extend PERF002's headers). Test that BUG008's optional-asset changes don't cause precache misses.
+
+#### Acceptance criteria
+
+- [ ] Lighthouse/DevTools: the app has a registered, activated service worker with the precache populated.
+- [ ] DevTools "Offline" + reload: the menu, gameplay and restart all work with no network errors.
+- [ ] After a new deploy, the next online launch serves the new version within one reload, and never swaps mid-game.
+- [ ] `sw.js` is served with `Cache-Control: no-cache`.
+
+#### Validation plan
+
+`pnpm run build && pnpm run preview`, then DevTools Application panel → Offline reload. A Playwright `context.setOffline(true)` case in TEST002. A Firebase preview-channel check for headers.
+
+#### Out of scope
+
+Background sync, push notifications (PRD §4 non-goals).
+
+### [PERF005] Pool merge and checkout particle emitters instead of creating them per event
+
+- **Category:** PERF
+- **Priority:** P3
+- **Effort:** S
+- **Confidence:** Medium
+- **Affected files:** `src/game/systems/MergeManager.ts`, `src/game/systems/OrderManager.ts`
+- **Affected experience:** Performance, Gameplay
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** BUG007
+
+#### Evidence and current behavior
+
+Each merge creates two `ParticleEmitter` game objects plus a shockwave sprite and a tween (`MergeManager.triggerMergeEffects`, lines 140-181). Each order checkout creates another emitter (`OrderManager.triggerCheckoutSparkles`, lines 274-289). Each is destroyed shortly after. Chain merges can create several emitters in one frame. PRD §23 asks to "avoid unnecessary object allocations" and "limit particle counts". Actual frame-time impact was not measured (headless software WebGL), so this is a recommendation pending profiling on a mid-range phone.
+
+#### Problem and impact
+
+Allocation churn and WebGL batch setup per merge can cause frame hitches during merge cascades on low-end devices, the moments that matter most for game feel.
+
+#### Desired outcome
+
+Two persistent merge emitters (circles, stars) and one checkout emitter are created once per scene and fired with `explode(count, x, y)`, with per-event tint set through emitter config ops. Shockwave rings come from a small `Group` pool. Visuals match today's, apart from the BUG007 fix.
+
+#### Implementation guidance
+
+Create the emitters in the `MergeManager`/`OrderManager` constructors with `emitting: false`. Before `explode`, update the tint via `emitter.setParticleTint(color)`, or use an `onEmit` callback for per-burst color. Pool rings with `scene.add.group({ classType: Phaser.GameObjects.Sprite, maxSize: 8 })`. Destroy everything on scene shutdown.
+
+#### Acceptance criteria
+
+- [ ] After 50 merges, the number of `ParticleEmitter` objects in `scene.children` stays constant (≤ 3).
+- [ ] The merge burst shows the merged drink's colors, as today.
+- [ ] Performance profile on a test phone shows no GC spike during a 5-merge cascade (record the trace; needs runtime validation).
+
+#### Validation plan
+
+Use DX004 to spawn cascades and count objects. DevTools Performance recording. `pnpm run build`.
+
+#### Out of scope
+
+Changing FX design. Reduced-motion variants (A11Y006).
+
+### Architecture and maintainability (ARCH)
+
+### [ARCH001] Create a shared UI button and toggle component
+
+- **Category:** ARCH
+- **Priority:** P1
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** new `src/game/ui/components/UIButton.ts` (and a toggle variant), `src/game/ui/HUD.ts`, `src/game/scenes/MenuScene.ts`, `src/game/ui/PauseModal.ts`, `src/game/ui/GameOverModal.ts`
+- **Affected experience:** Developer workflow, Accessibility
+- **Depends on:** None
+- **Blocks:** UX009, UI001, A11Y002
+- **Can be combined with:** A11Y004
+
+#### Evidence and current behavior
+
+Button behavior is re-implemented ad hoc in four places, each with different semantics:
+- **Sound/music toggles in three copies:** `MenuScene.createAudioControls()` (lines 140-170), `HUD.createTopButtons()` (lines 24-62) and `PauseModal.createToggleRow()` (lines 173-220). The first two use emoji text, the third an ON/OFF pill. They stay in sync only through `HUD.updateAudioIcons()`, and only from pause.
+- **Primary buttons** are a sprite plus a separate text object that must be positioned and scaled together (`MenuScene.ts:90-116`, `PauseModal.ts:106-113`, `GameOverModal.ts:97-105`). Hover scaling exists on Game Over only (lines 107-108).
+- **Secondary actions** are bare `Text` objects with text-sized hit areas.
+
+Every button activates on `pointerdown`, which is the root of BUG003.
+
+#### Problem and impact
+
+Fixing target sizes, focus, keyboard activation, pointer-up semantics and icon contrast would otherwise mean editing about a dozen hand-built buttons, with inconsistent results.
+
+#### Desired outcome
+
+One `UIButton` (variants: primary, secondary, icon; plus a `UIToggle` bound to a `SaveManager` setting) that provides:
+- a minimum hit area (A11Y004);
+- pointer-up activation over the same object;
+- hover, pressed, focused and disabled states;
+- an accessible label string (for A11Y003);
+- a keyboard-activation hook (for A11Y002);
+- optional confirm state (for UX009).
+
+All existing controls use it, and the audio toggles read and write through one source of truth, with every on-screen instance updating.
+
+#### Implementation guidance
+
+Implement as a `Phaser.GameObjects.Container` subclass holding background, label or icon, and an invisible hit zone. Emit a single `'activate'` event. Keep it small: no framework or DI (PRD §20). Have `AudioManager` (or `SaveManager`) emit a `settingschanged` event so all toggle instances refresh, replacing `HUD.updateAudioIcons()` and the `onSettingsChanged` callback.
+
+#### Acceptance criteria
+
+- [ ] Every interactive control in Menu, HUD, Pause and Game Over is a `UIButton` or `UIToggle` (grep shows no `setInteractive` outside the component, the backdrops and the spawner).
+- [ ] Toggling sound in pause updates the HUD icon, and vice versa, without manual sync code.
+- [ ] Buttons activate on release over the button. Pressing and dragging off cancels.
+- [ ] Visual appearance is unchanged except for the added states (screenshots before and after).
+- [ ] `pnpm run build` passes, with no unused-symbol errors.
+
+#### Validation plan
+
+Screenshot comparison at 390×844. Manual pointer press-drag-off test. TEST002 regression run.
+
+#### Out of scope
+
+Keyboard focus navigation (A11Y002). Icon art (UI001). Sizes (A11Y004). This item only provides the hooks for them.
+
+### [ARCH002] Introduce one explicit game phase instead of four drifting flags
+
+- **Category:** ARCH
+- **Priority:** P2
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/game/scenes/GameScene.ts`, `src/game/systems/DrinkSpawner.ts`, `src/game/systems/GameOverManager.ts`, `src/game/systems/MergeManager.ts`, `src/game/systems/OrderManager.ts`
+- **Affected experience:** Gameplay, Replay, Developer workflow
+- **Depends on:** BUG001, BUG002, BUG003, BUG004
+- **Blocks:** None
+- **Can be combined with:** BUG004
+
+#### Evidence and current behavior
+
+Run state is spread across:
+- `GameScene.isGameActive` (line 26);
+- `DrinkSpawner.isEnabled` and `isCoolingDown` (lines 13-14);
+- `GameOverManager.isGameOver` and `isEnabled` (lines 9, 11; `setEnabled` is never called);
+- `OrderManager.isCheckingOut` (line 31).
+
+Each is toggled from different call sites (`handlePause`, `resumeGame`, `restartGame`, `handleGameOver`, `spawner.reset`), and timers and tweens aren't tied to any of them. BUG001–BUG004 are all symptoms of this drift.
+
+#### Problem and impact
+
+Every new feature (tutorial, auto-pause, rotate overlay, confirm dialogs) must remember to flip the right subset of flags, and each miss produces another lifecycle bug.
+
+#### Desired outcome
+
+`GameScene` owns a single `phase: 'playing' | 'paused' | 'gameOver' | 'exiting'` with one `setPhase()` that applies all side effects:
+- physics, time and gameplay tweens pause or resume;
+- the spawner is enabled or disabled;
+- game-over checks are armed;
+- pending timers are cancelled on exit or restart.
+
+Systems take an `isPlaying()` predicate (or listen for a phase event) instead of keeping their own enable flags.
+
+#### Implementation guidance
+
+Do this after BUG001–BUG004 so it is a behavior-preserving refactor with tests (TEST002) as a safety net. Keep it a plain field plus a switch; no state-machine library (PRD §20). Remove `GameOverManager.isEnabled`/`setEnabled` and `DrinkSpawner.isEnabled`.
+
+#### Acceptance criteria
+
+- [ ] Only `setPhase()` changes run state. The grep shows no other writes to the removed flags.
+- [ ] All TEST002 lifecycle cases (pause freeze, resume no-drop, cooldown recovery, restart reset, game-over freeze) pass unchanged.
+- [ ] Restarting 20 times in a row leaves exactly one set of input listeners and no orphaned timers (check `scene.time` events and `input.listenerCount('pointerup')`).
+
+#### Validation plan
+
+TEST002 suite plus `pnpm run build`. Manual soak: 10 pause/resume and 10 restart cycles.
+
+#### Out of scope
+
+New gameplay behavior. Overlay-scene refactor beyond what BUG001 needed.
+
+### [ARCH003] Drive glass rendering from `glassShape`/`garnish` data instead of the tier number
+
+- **Category:** ARCH
+- **Priority:** P3
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/utils/AssetGenerator.ts`, `src/game/config/drinks.ts`, `src/types/game.ts`, `CLAUDE.md`
+- **Affected experience:** Developer workflow
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+`AssetGenerator.drawSideViewCocktail()` switches on `drink.level` (cases 0–11) and ignores the definition's `glassShape` and `garnish`. As a result, the data contradicts the art:
+
+| Tier | Data says | Rendered as |
+|---|---|---|
+| 1 | `tumbler` | flute |
+| 3 | `highball` | coupe |
+| 6 | `hurricane` | poco grande |
+| 7 | `hurricane` | martini |
+| 9 | `chalice` | tulip |
+
+The `glassShape` union in `src/types/game.ts:10` doesn't include `flute`, `coupe`, `poco`, `tulip` or `mojito`, though they are drawn. Some renderers take a `_garnish` parameter they ignore (for example `drawTumblerGlass`, `drawFluteGlass`). There is no `default` case, so adding a 13th tier silently renders just the bubble. `CLAUDE.md` tells contributors that "new glass shapes or garnishes need a matching case there", which describes a design that doesn't exist.
+
+#### Problem and impact
+
+PRD §6 asks for a data-driven progression. Today, reordering or adding tiers means editing the renderer by index, and the data fields mislead anyone extending the game.
+
+#### Desired outcome
+
+Each tier's art is chosen by `glassShape` plus `garnish`. The type union lists every drawable shape. A missing shape fails `tsc` (exhaustive `switch` with a `never` check) instead of rendering a blank bubble. The existing art is unchanged pixel-for-pixel.
+
+#### Implementation guidance
+
+Extend the union, update the `DRINKS` data to name the shapes actually drawn, and map `glassShape → draw function` with a separate garnish pass where garnishes are hard-coded today. Snapshot the 12 generated textures before refactoring (canvas `toDataURL`) and compare after. Update `CLAUDE.md`.
+
+#### Acceptance criteria
+
+- [ ] `drawSideViewCocktail` no longer references `drink.level`.
+- [ ] All 12 generated textures are pixel-identical to the pre-refactor snapshots (or differences are listed and approved).
+- [ ] Adding a `DRINKS` entry with an unknown `glassShape` fails `pnpm run build`.
+- [ ] `CLAUDE.md` describes the actual mapping.
+
+#### Validation plan
+
+Snapshot-comparison script (Playwright evaluates `textures.get('drink_N').getSourceImage().toDataURL()`), plus `pnpm run build`.
+
+#### Out of scope
+
+New artwork or tiers.
+
+### [ARCH004] Centralize layout geometry and the reference-height scaling helper
+
+- **Category:** ARCH
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/config/gameConfig.ts`, `src/game/ui/HUD.ts`, `src/game/systems/OrderManager.ts`, `src/game/scenes/MenuScene.ts`, `src/game/ui/PauseModal.ts`, `src/game/ui/GameOverModal.ts`
+- **Affected experience:** Developer workflow, Responsive
+- **Depends on:** None
+- **Blocks:** UX007
+- **Can be combined with:** UX001
+
+#### Evidence and current behavior
+
+`gameConfig.ts` defines a private `scaleY` helper (lines 41-42). `OrderManager.ts:12-13` re-implements it with a literal `1280`, and `HUD.ts:71` inlines `Math.round((1190 / 1280) * GAME_CONFIG.HEIGHT)`. Many other coordinates are hard-coded literals:
+- HUD buttons x = 560 / 614 / 668, y = 48;
+- menu toggles at `WIDTH - 110` / `WIDTH - 50`, y = 60;
+- ticket slots x = 280 / 440 (in two places: lines 83 and 194);
+- score cards x = 220 / 500;
+- modal card rectangles ±240.
+
+`computeCanvasHeight()` is evaluated once at import.
+
+#### Problem and impact
+
+Layout changes (UX001, A11Y004/A11Y005 resizing, UX007 recomputation, UX008 safe areas) each require hunting literals across six files, and the duplicated slot X values can drift.
+
+#### Desired outcome
+
+A single `LAYOUT` object (or `getLayout(canvasHeight)` function) in `gameConfig.ts` exports the reference-scaling helper and named anchors (HUD cluster, ticket slots, score cards, next-drink slot, modal card size). All UI reads from it. No `1280` literals outside `gameConfig.ts`.
+
+#### Implementation guidance
+
+Export `REFERENCE_HEIGHT` and `scaleY`. Group anchors by component. Make the layout derivable from a height argument so UX007 can recompute it. Keep the change behavior-preserving (identical screenshots).
+
+#### Acceptance criteria
+
+- [ ] `grep -rn "1280" src` matches only `gameConfig.ts`.
+- [ ] HUD, ticket, card and modal positions come from named layout constants. Ticket slot X is defined once.
+- [ ] Screenshots at 360×640, 390×844 and 768×1024 are pixel-identical before and after.
+
+#### Validation plan
+
+Playwright screenshot diff, plus `pnpm run build`.
+
+#### Out of scope
+
+Changing the layout itself (UX001, A11Y004, A11Y005). Runtime recomputation (UX007).
+
+### [ARCH005] Validate and migrate save data, and stop writing to storage on every merge
+
+- **Category:** ARCH
+- **Priority:** P3
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/storage/SaveManager.ts`, `src/game/systems/ScoreManager.ts`, `src/types/game.ts`
+- **Affected experience:** Replay, Developer workflow
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+- **No per-field validation.** `SaveManager.load()` (lines 30-46) only checks `typeof parsed.bestScore === 'number'`, then spreads *all* parsed fields over the defaults. Wrong types survive: `"soundEnabled": "false"` (a truthy string), `bestScore: Infinity`, negative numbers, and unknown keys that get written back forever.
+- **`version` is never read**, so there is no migration path, although `STORAGE_KEY` embeds `_v1`.
+- **Storage writes on every merge.** `ScoreManager.addScore()` calls `SaveManager.setBestScore()` on every score change (`ScoreManager.ts:30`), so once a run passes the record, *every merge* performs a synchronous `localStorage.setItem` with a JSON stringify.
+- **Abandoned runs are never counted.** `recordGamePlayed` runs only on game over, not when quitting to the menu.
+
+#### Problem and impact
+
+A corrupted or hand-edited save can break the audio toggles or the best-score display permanently. Synchronous storage writes during merge cascades add avoidable main-thread work. Future fields (tutorial, reduce-motion, unlocks) need a safe migration story.
+
+#### Desired outcome
+
+- Each field is validated: right type, finite, sensible range. Otherwise the default is used.
+- Unknown fields are dropped.
+- `version` drives a migration function.
+- The best score is persisted at game over, pause, `visibilitychange` (hidden) and quit, not per merge. The in-memory best still updates live.
+
+#### Implementation guidance
+
+Write a `sanitize(raw: unknown): SaveData` pure function (unit-tested in TEST001) and a `migrations` map keyed by version. Add `SaveManager.flush()` and call it from the GameScene lifecycle points. Keep `localStorage` error swallowing as-is.
+
+#### Acceptance criteria
+
+- [ ] Loading `{"bestScore":"abc","soundEnabled":"false","foo":1}` yields defaults for those fields and drops `foo`.
+- [ ] A v1 save loads unchanged under the new code. A synthetic v0 save is migrated.
+- [ ] No `localStorage.setItem` call occurs during a merge (spy in tests). The best score survives a hard reload after a game over or tab hide.
+- [ ] Existing players' best scores are preserved.
+
+#### Validation plan
+
+TEST001 unit tests with a stubbed `localStorage`. Manual reload tests. `pnpm run build`.
+
+#### Out of scope
+
+Cloud saves (PRD §4 non-goal).
+
+### [ARCH006] Remove dead code and misleading leftovers
+
+- **Category:** ARCH
+- **Priority:** P3
+- **Effort:** XS
+- **Confidence:** High
+- **Affected files:** `src/game/entities/Drink.ts`, `src/game/systems/GameOverManager.ts`, `src/game/systems/MergeManager.ts`, `src/game/systems/AudioManager.ts`, `src/game/systems/OrderManager.ts`, `src/utils/AssetGenerator.ts`, `src/types/game.ts`, `src/storage/SaveManager.ts`
+- **Affected experience:** Developer workflow
+- **Depends on:** UX001, UX011
+- **Blocks:** None
+- **Can be combined with:** None
+
+#### Evidence and current behavior
+
+Verified unused or always-constant symbols:
+- `Drink.isDropped` (always `true`, never assigned elsewhere; checked in `MergeManager.ts:75-76`, `OrderManager.ts:176`, `GameOverManager.ts:24`).
+- `GameOverManager.isEnabled`/`setEnabled()` (never called).
+- `AudioManager.isMusicPlaying()` (no callers).
+- `AudioManager.musicGain` (created, never connected; see UX011).
+- The `'drop_guidance_line'` texture (`AssetGenerator.ts:1052-1063`; never used, since `DrinkSpawner` draws its own dashes).
+- The `'floor'` label checks in `MergeManager.ts:38-39` (`Board` creates no floor body).
+- The `GameSettings` interface (`types/game.ts:29-32`).
+- `SaveManager.getHighestDrinkUnlocked()` (no callers until UX010).
+- Deprecated `String.prototype.substr` in IDs (`Drink.ts:19`, `OrderManager.ts:70`).
+- The `ScoreManager` `isNewBest` callback argument, which `GameScene` ignores.
+
+#### Problem and impact
+
+Dead flags look like meaningful guards (for example `isDropped` suggests a pre-drop state that doesn't exist), which misleads future changes. CLAUDE.md even documents `isDropped` as gating collision logic.
+
+#### Desired outcome
+
+Each listed symbol is either deleted or put to real use (`musicGain` by UX011, `onNextDrinkChanged` by UX001, `getHighestDrinkUnlocked` by UX010). IDs use `crypto.randomUUID()` or a counter. `CLAUDE.md` is updated to match.
+
+#### Implementation guidance
+
+Do this after UX001 and UX011 so you don't delete hooks they use. If UX010 hasn't landed, keep `getHighestDrinkUnlocked`. Re-run `pnpm run build` (`noUnusedLocals` will flag leftovers).
+
+#### Acceptance criteria
+
+- [ ] No symbol in the list remains unused (grep each name).
+- [ ] `CLAUDE.md` no longer mentions `isDropped` gating (or describes its new real meaning).
+- [ ] `pnpm run build` passes, and gameplay is unchanged in a manual smoke test.
+
+#### Validation plan
+
+`pnpm run build`, plus a grep checklist in the PR. TEST002 smoke.
+
+#### Out of scope
+
+Behavior changes.
