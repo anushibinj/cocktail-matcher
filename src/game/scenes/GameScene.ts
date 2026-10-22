@@ -207,6 +207,18 @@ export class GameScene extends Phaser.Scene {
     this.scoreManager.addScore(score - this.scoreManager.getScore());
   }
 
+  /** Read-only snapshot of run state for tests. */
+  public debugGetState(): { isGameActive: boolean; score: number; bestScore: number; drinks: { level: number; x: number; y: number }[] } {
+    return {
+      isGameActive: this.isGameActive,
+      score: this.scoreManager.getScore(),
+      bestScore: this.scoreManager.getBestScore(),
+      drinks: this.droppedDrinks
+        .filter(d => d.active && !d.isMerging)
+        .map(d => ({ level: d.level, x: d.x, y: d.y }))
+    };
+  }
+
   /** Ends the current run immediately, as if the danger timer had expired. */
   public debugForceGameOver(): void {
     if (this.isGameActive) {
