@@ -47,9 +47,10 @@ export class GameOverModal {
       strokeThickness: 4
     }).setOrigin(0.5);
 
-    // New Best Badge
+    // New Best Badge (added to cardGroup after cardBg so it renders on top)
+    let newBestBadge: Phaser.GameObjects.Text | undefined;
     if (isNewBest) {
-      const newBestBadge = this.scene.add.text(0, -115, '🏆 NEW BEST SCORE! 🏆', {
+      newBestBadge = this.scene.add.text(0, -115, '🏆 NEW BEST SCORE! 🏆', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '20px',
         fontStyle: 'bold',
@@ -66,7 +67,6 @@ export class GameOverModal {
         yoyo: true,
         repeat: -1
       });
-      cardGroup.add(newBestBadge);
     }
 
     // Score Label & Value
@@ -130,6 +130,9 @@ export class GameOverModal {
     });
 
     cardGroup.add([cardBg, titleText, scoreLabel, scoreValue, bestValue, playAgainBtn, playAgainText, menuBtn]);
+    if (newBestBadge) {
+      cardGroup.add(newBestBadge);
+    }
     this.container.add([backdrop, cardGroup]);
 
     // Animate Card Pop-in

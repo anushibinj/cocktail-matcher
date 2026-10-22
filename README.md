@@ -52,7 +52,9 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` (or the network URL displayed in terminal) in your mobile or desktop browser to play immediately!
+Open `http://localhost:3000` in your desktop browser to play immediately!
+
+The dev server listens on `localhost` only. To test on a phone or tablet on the same network, run `npm run dev:lan` (or `pnpm run dev:lan`) instead and open the network URL printed in the terminal. Only do this on a trusted network, since it exposes the dev server to other devices.
 
 ---
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Cocktail Merge — Tropical Drop & Merge Game</title>
   <meta name="description" content="A cheerful, relaxing tropical cocktail drop and merge casual game." />
   <meta name="theme-color" content="#ff7e5f" />
@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Cocktail Merge" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
   
   <style>
     * {
@@ -29,7 +29,6 @@
       overflow: hidden;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Quicksand', sans-serif;
-      touch-action: none;
       -webkit-overflow-scrolling: auto;
       overscroll-behavior: none;
     }
@@ -43,8 +42,10 @@
       position: relative;
     }
 
+    /* Capture gameplay gestures on the board only, so pinch zoom still works elsewhere. */
     canvas {
       display: block;
+      touch-action: none;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
     }
   </style>

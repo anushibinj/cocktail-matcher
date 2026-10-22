@@ -13,6 +13,11 @@ export class DrinkSpawner {
   private nextLevel: number = 0;
   private isCoolingDown: boolean = false;
   private isEnabled: boolean = true;
+  private cooldownTimer: Phaser.Time.TimerEvent | null = null;
+  // Id of the pointer whose press started an aiming gesture, or null. Only
+  // that pointer's release launches, so taps on buttons (which never arm)
+  // and extra fingers during a multi-touch never fire a drink.
+  private armedPointerId: number | null = null;
   private currentTargetX: number = GAME_CONFIG.BOARD.CENTER_X;
   private onNextDrinkChanged?: (level: number) => void;
   private onDrinkDropped?: (drink: Drink) => void;
@@ -58,19 +63,51 @@ export class DrinkSpawner {
   private setupInput(): void {
     this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!this.isEnabled) return;
+      if (this.armedPointerId !== null && pointer.id !== this.armedPointerId) return;
       this.handlePointerMove(pointer.x);
     });
 
-    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isEnabled) return;
-      this.handlePointerMove(pointer.x);
-      this.drawGuidanceLine();
-    });
+    this.scene.input.on(
+      'pointerdown',
+      (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+        // Phaser emits a button's own pointerdown before this scene-wide one,
+        // so a button that just re-enabled the spawner (Resume, Play Again)
+        // still shows up in currentlyOver here and must not arm a launch.
+        if (this.isOtherArmedPointerDown(pointer)) return;
+        // Any arm left at this point is stale (its release was lost), so drop
+        // it before the button check; otherwise this press's release would
+        // match it and launch from a HUD tap.
+        this.armedPointerId = null;
+        if (!this.isEnabled || currentlyOver.length > 0) return;
+        this.armedPointerId = pointer.id;
+        this.handlePointerMove(pointer.x);
+        this.drawGuidanceLine();
+      }
+    );
 
-    this.scene.input.on('pointerup', () => {
-      if (!this.isEnabled) return;
+    this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.id !== this.armedPointerId) return;
+      this.armedPointerId = null;
+      // Phaser reports an OS-cancelled touch (edge swipe, call overlay) as a
+      // pointerup with wasCanceled set; that is not a release to launch on.
+      if (!this.isEnabled || pointer.wasCanceled) return;
       this.launchCurrentDrink();
     });
+
+    // Releasing off-canvas never launched before; just drop the gesture.
+    this.scene.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.id === this.armedPointerId) {
+        this.armedPointerId = null;
+      }
+    });
+  }
+
+  // A second finger must not take over an aim in progress, but a gesture
+  // whose release never reached the page must not block new ones.
+  private isOtherArmedPointerDown(pointer: Phaser.Input.Pointer): boolean {
+    if (this.armedPointerId === null || this.armedPointerId === pointer.id) return false;
+    const armed = this.scene.input.manager.pointers.find(p => p.id === this.armedPointerId);
+    return !!armed && armed.isDown;
   }
 
   private handlePointerMove(rawX: number): void {
@@ -127,23 +164,50 @@ export class DrinkSpawner {
       this.onDrinkDropped(drink);
     }
 
-    // Cooldown before next drink appears at launcher
-    this.scene.time.delayedCall(GAME_CONFIG.DROP_COOLDOWN_MS, () => {
-      if (this.isEnabled) {
-        this.currentLevel = this.nextLevel;
-        this.nextLevel = this.getRandomSpawnLevel();
-
-        if (this.onNextDrinkChanged) {
-          this.onNextDrinkChanged(this.nextLevel);
-        }
-
-        this.updatePreviewTexture();
-        this.previewSprite.setVisible(true);
-        this.isCoolingDown = false;
-        this.popInPreview();
-        this.drawGuidanceLine();
-      }
+    // Cooldown before next drink appears at launcher. The callback must
+    // always end the cooldown, even if the spawner was disabled (paused)
+    // meanwhile; otherwise nothing ever clears isCoolingDown and launching
+    // is soft-locked. Only the guidance line depends on isEnabled, and
+    // drawGuidanceLine() already checks that.
+    this.cooldownTimer = this.scene.time.delayedCall(GAME_CONFIG.DROP_COOLDOWN_MS, () => {
+      this.cooldownTimer = null;
+      this.finishCooldown();
     });
+  }
+
+  private finishCooldown(): void {
+    this.currentLevel = this.nextLevel;
+    this.nextLevel = this.getRandomSpawnLevel();
+
+    if (this.onNextDrinkChanged) {
+      this.onNextDrinkChanged(this.nextLevel);
+    }
+
+    this.updatePreviewTexture();
+    this.previewSprite.setVisible(true);
+    this.isCoolingDown = false;
+    this.popInPreview();
+    this.drawGuidanceLine();
+  }
+
+  /**
+   * Ends a cooldown left pending by a pause right away (advancing the queue
+   * once), so the preview is back and launchable the moment play resumes.
+   * Restart uses cancelCooldown() instead, which doesn't advance.
+   */
+  public finishPendingCooldown(): void {
+    if (!this.cooldownTimer) return;
+    this.cooldownTimer.remove(false);
+    this.cooldownTimer = null;
+    this.finishCooldown();
+  }
+
+  private cancelCooldown(): void {
+    if (this.cooldownTimer) {
+      this.cooldownTimer.remove(false);
+      this.cooldownTimer = null;
+    }
+    this.isCoolingDown = false;
   }
 
   private updatePreviewTexture(): void {
@@ -182,6 +246,7 @@ export class DrinkSpawner {
   public setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
     if (!enabled) {
+      this.armedPointerId = null;
       this.guidanceGfx.clear();
     } else {
       this.drawGuidanceLine();
@@ -189,7 +254,10 @@ export class DrinkSpawner {
   }
 
   public reset(): void {
-    this.isCoolingDown = false;
+    this.armedPointerId = null;
+    // A cooldown still pending from the previous game would otherwise fire
+    // after the restart and advance the freshly rolled queue a second time.
+    this.cancelCooldown();
     this.isEnabled = true;
     this.currentTargetX = GAME_CONFIG.BOARD.CENTER_X;
     this.currentLevel = this.getRandomSpawnLevel();

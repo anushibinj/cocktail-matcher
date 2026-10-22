@@ -1,5 +1,11 @@
 import { SaveManager } from '../../storage/SaveManager';
 
+// Optional clink override — see src/assets/audio/README.md. Resolved at build
+// time, so the URL is undefined (and nothing is fetched) when no file exists.
+const CUSTOM_CLINK_URL: string | undefined = Object.values(
+  import.meta.glob<string>('../../assets/audio/clink.mp3', { eager: true, query: '?url', import: 'default' })
+)[0];
+
 export class AudioManager {
   private static instance: AudioManager;
   private ctx: AudioContext | null = null;
@@ -42,7 +48,7 @@ export class AudioManager {
       // Initialize BGM Audio Element with bgm.m4a
       this.initBgmAudio();
 
-      // Try loading custom clink.mp3 from assets/audio/ if present
+      // Load custom clink.mp3 from src/assets/audio/ if one was bundled
       this.loadCustomAudio();
 
       const unlock = () => {
@@ -56,6 +62,16 @@ export class AudioManager {
         window.removeEventListener('keydown', unlock);
         window.removeEventListener('touchstart', unlock);
       };
+
+      // One page-level listener for the singleton, so scene restarts never
+      // stack duplicates. Stops BGM while the tab or app is in background.
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          this.suspendForBackground();
+        } else {
+          this.resumeFromBackground();
+        }
+      });
 
       window.addEventListener('pointerdown', unlock, { once: true });
       window.addEventListener('keydown', unlock, { once: true });
@@ -76,15 +92,15 @@ export class AudioManager {
   }
 
   private async loadCustomAudio(): Promise<void> {
-    if (!this.ctx) return;
+    if (!this.ctx || !CUSTOM_CLINK_URL) return;
     try {
-      const response = await fetch('./assets/audio/clink.mp3');
+      const response = await fetch(CUSTOM_CLINK_URL);
       if (response.ok) {
         const arrayBuffer = await response.arrayBuffer();
         this.clinkAudioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
       }
     } catch {
-      // Custom audio file not found or fetch skipped, fallback to synthesized crystal clink
+      // Custom audio failed to fetch or decode, fallback to synthesized crystal clink
     }
   }
 
@@ -408,6 +424,32 @@ export class AudioManager {
     this.isBgmPlaying = false;
     if (this.bgmAudio) {
       this.bgmAudio.pause();
+    }
+  }
+
+  public suspendForBackground(): void {
+    // isBgmPlaying is left as is, so resumeFromBackground knows whether to restart
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+    }
+    if (this.ctx && this.ctx.state === 'running') {
+      this.ctx.suspend().catch(() => {});
+    }
+  }
+
+  public resumeFromBackground(): void {
+    // Resume unless closed, not just when 'suspended': iOS WebKit can come
+    // back 'interrupted' and won't auto-resume a context the page suspended
+    // itself, and in Firefox a quick hide/show can arrive while suspend()
+    // is still pending (state still 'running'); resume() queues behind it.
+    // Missing either would leave SFX silent for the rest of the session.
+    if (this.ctx && this.ctx.state !== 'closed') {
+      this.ctx.resume().catch(() => {});
+    }
+    if (this.isBgmPlaying && SaveManager.getInstance().getMusicEnabled() && this.bgmAudio) {
+      this.bgmAudio.play().catch((err) => {
+        console.log('BGM waiting for user interaction:', err);
+      });
     }
   }
 

@@ -6,6 +6,8 @@ export class ScoreManager {
   private scene: Phaser.Scene;
   private currentScore: number = 0;
   private bestScore: number = 0;
+  // True once this run has strictly exceeded the best stored when the run started
+  private beatPreviousBest: boolean = false;
   private onScoreChanged?: (score: number, bestScore: number, isNewBest: boolean) => void;
 
   constructor(
@@ -19,6 +21,7 @@ export class ScoreManager {
 
   public init(): void {
     this.currentScore = 0;
+    this.beatPreviousBest = false;
     this.bestScore = SaveManager.getInstance().getBestScore();
     if (this.onScoreChanged) {
       this.onScoreChanged(this.currentScore, this.bestScore, false);
@@ -30,6 +33,7 @@ export class ScoreManager {
     const isNewBest = SaveManager.getInstance().setBestScore(this.currentScore);
     if (isNewBest) {
       this.bestScore = this.currentScore;
+      this.beatPreviousBest = true;
     }
 
     if (this.onScoreChanged) {
@@ -80,6 +84,10 @@ export class ScoreManager {
 
   public getBestScore(): number {
     return this.bestScore;
+  }
+
+  public hasBeatPreviousBest(): boolean {
+    return this.beatPreviousBest;
   }
 
   public reset(): void {
