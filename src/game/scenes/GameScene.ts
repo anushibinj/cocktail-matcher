@@ -62,6 +62,7 @@ export class GameScene extends Phaser.Scene {
     this.mergeManager = new MergeManager(
       this,
       this.scoreManager,
+      () => this.isPlaying(),
       (newDrink: Drink) => {
         this.droppedDrinks.push(newDrink);
         if (newDrink.level > this.highestDrinkThisGame) {
@@ -216,7 +217,6 @@ export class GameScene extends Phaser.Scene {
     if (!this.matter.world.enabled) return;
     this.matter.world.pause();
     this.time.paused = true;
-    this.mergeManager.setEnabled(false);
     // A merge shake would otherwise play out under the modal, shaking it too
     this.cameras.main.shakeEffect.reset();
     this.frozenTweens = this.tweens.getTweens().filter(t => t.isPlaying());
@@ -228,7 +228,6 @@ export class GameScene extends Phaser.Scene {
       if (!t.isDestroyed()) t.resume();
     });
     this.frozenTweens = [];
-    this.mergeManager.setEnabled(true);
     this.time.paused = false;
     this.matter.world.resume();
   }
