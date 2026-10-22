@@ -189,6 +189,8 @@ export class GameScene extends Phaser.Scene {
     this.matter.world.pause();
     this.time.paused = true;
     this.mergeManager.setEnabled(false);
+    // A merge shake would otherwise play out under the modal, shaking it too
+    this.cameras.main.shakeEffect.reset();
     this.frozenTweens = this.tweens.getTweens().filter(t => t.isPlaying());
     this.frozenTweens.forEach(t => t.pause());
   }
