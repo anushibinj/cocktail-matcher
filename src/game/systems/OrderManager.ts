@@ -29,6 +29,12 @@ export class OrderManager {
   private ticketViews: Map<string, Phaser.GameObjects.Container> = new Map();
   private onOrderFulfilled?: (order: ToGoOrder, drink: Drink) => void;
   private isCheckingOut: boolean = false;
+  // In-flight checkout animations and the drinks flying to a ticket, so a
+  // restart can cancel them before their onComplete scores into a new game
+  private checkoutTweens: Set<Phaser.Tweens.Tween> = new Set();
+  private flyingDrinks: Set<Drink> = new Set();
+  // Created once per scene and re-fired with explode() for each checkout.
+  private sparkleEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(
     scene: Phaser.Scene,
@@ -40,6 +46,16 @@ export class OrderManager {
     this.onOrderFulfilled = onOrderFulfilled;
     this.container = this.scene.add.container(0, 0);
     this.container.setDepth(20);
+
+    this.sparkleEmitter = this.scene.add.particles(0, 0, 'particle_star', {
+      speed: { min: 60, max: 180 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.8, end: 0 },
+      tint: [0xffd700, 0x10b981, 0xffffff],
+      lifespan: { min: 400, max: 650 },
+      emitting: false
+    });
+    this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.sparkleEmitter.destroy());
   }
 
   public init(): void {
@@ -204,13 +220,13 @@ export class OrderManager {
       }).setOrigin(0.5);
       ticketView.add(checkmark);
 
-      this.scene.tweens.add({
+      this.trackCheckoutTween(this.scene.tweens.add({
         targets: checkmark,
         scaleX: { from: 0.5, to: 1.2 },
         scaleY: { from: 0.5, to: 1.2 },
         duration: 250,
         yoyo: true
-      });
+      }));
     }
 
     // 2. Remove drink from Matter physics world immediately
@@ -229,7 +245,8 @@ export class OrderManager {
     // 0.5 — a custom artwork texture's native size rarely matches its
     // on-board display size, so an absolute target would snap the drink to
     // a wrong (often much larger) size mid-flight.
-    this.scene.tweens.add({
+    this.flyingDrinks.add(drink);
+    this.trackCheckoutTween(this.scene.tweens.add({
       targets: drink,
       x: targetX,
       y: targetY,
@@ -246,11 +263,12 @@ export class OrderManager {
         AudioManager.getInstance().playOrderComplete();
 
         // Destroy drink
+        this.flyingDrinks.delete(drink);
         drink.destroy();
 
         // Slide away ticket and spawn new order after brief delay
         if (ticketView) {
-          this.scene.tweens.add({
+          this.trackCheckoutTween(this.scene.tweens.add({
             targets: ticketView,
             y: -100,
             alpha: 0,
@@ -262,33 +280,33 @@ export class OrderManager {
               this.spawnNewOrder(slotIndex);
               this.isCheckingOut = false;
             }
-          });
+          }));
         } else {
           this.spawnNewOrder(slotIndex);
           this.isCheckingOut = false;
         }
       }
-    });
+    }));
+  }
+
+  private trackCheckoutTween(tween: Phaser.Tweens.Tween): void {
+    this.checkoutTweens.add(tween);
+    tween.once(Phaser.Tweens.Events.TWEEN_COMPLETE, () => this.checkoutTweens.delete(tween));
   }
 
   private triggerCheckoutSparkles(x: number, y: number): void {
-    const emitter = this.scene.add.particles(x, y, 'particle_star', {
-      speed: { min: 60, max: 180 },
-      angle: { min: 0, max: 360 },
-      scale: { start: 0.8, end: 0 },
-      tint: [0xffd700, 0x10b981, 0xffffff],
-      lifespan: { min: 400, max: 650 },
-      quantity: 16,
-      emitting: false
-    });
-    emitter.explode(16, x, y);
-
-    this.scene.time.delayedCall(700, () => {
-      emitter.destroy();
-    });
+    // Bring to top so it layers like a freshly added emitter
+    this.scene.children.bringToTop(this.sparkleEmitter);
+    this.sparkleEmitter.explode(16, x, y);
   }
 
   public reset(): void {
+    // Cancel any checkout still animating, so its reward, ticket slide and
+    // replacement order don't land in the new game
+    this.checkoutTweens.forEach(t => t.remove());
+    this.checkoutTweens.clear();
+    this.flyingDrinks.forEach(d => d.destroy());
+    this.flyingDrinks.clear();
     this.init();
   }
 }

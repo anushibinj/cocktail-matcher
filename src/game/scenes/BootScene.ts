@@ -5,6 +5,12 @@ import { AudioManager } from '../systems/AudioManager';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { DRINKS } from '../config/drinks';
 
+const CUSTOM_DRINK_ART = import.meta.glob<string>('../../assets/drinks/drink_*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default'
+});
+
 export class BootScene extends Phaser.Scene {
   constructor() {
     super({ key: 'BootScene' });
@@ -35,14 +41,15 @@ export class BootScene extends Phaser.Scene {
     drawProgress(0);
     this.load.on('progress', drawProgress);
 
-    // Optional custom artwork per tier — see public/assets/drinks/README.md.
-    // this.load.image() resolves 404s gracefully (unlike this.load.svg(),
-    // which throws on a missing file and would wedge the whole boot
-    // sequence), so PNG is the only supported override format here.
-    // generateAll() below fills in a procedural glass for any tier whose
-    // file didn't load.
-    DRINKS.forEach((drink) => {
-      this.load.image(`drink_${drink.level}_custom`, `assets/drinks/drink_${drink.level}.png`);
+    // Optional custom artwork per tier — see src/assets/drinks/README.md.
+    // The glob is resolved at build time, so only override files that
+    // actually exist are requested; generateAll() below fills in a
+    // procedural glass for every other tier.
+    Object.entries(CUSTOM_DRINK_ART).forEach(([path, url]) => {
+      const level = Number(/drink_(\d+)\.png$/.exec(path)?.[1]);
+      if (DRINKS.some((drink) => drink.level === level)) {
+        this.load.image(`drink_${level}_custom`, url);
+      }
     });
 
     this.load.once('complete', () => {

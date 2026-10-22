@@ -15,6 +15,7 @@ The repo currently ships `package-lock.json` (npm); use `pnpm` for interactive d
 ```bash
 pnpm install        # install dependencies
 pnpm run dev         # start Vite dev server at http://localhost:3000
+pnpm run dev:lan     # same, but listening on all interfaces (for phone testing on a trusted LAN)
 pnpm run build        # tsc typecheck (no emit) + vite production build to dist/
 pnpm run preview      # serve the production build locally
 ```
