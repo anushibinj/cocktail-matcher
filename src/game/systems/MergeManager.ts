@@ -11,6 +11,14 @@ export class MergeManager {
   private onDrinkRemoved?: (drink: Drink) => void;
   private pendingMerges: Set<string> = new Set();
 
+  // Pooled merge FX: created once per scene and re-fired with explode(), so
+  // particles from one burst live out their lifespan instead of being cut
+  // off when a per-merge emitter is destroyed.
+  private splashEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
+  private starEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
+  private splashTint: number = 0xffffff;
+  private starTints: number[] = [0xffffff, 0xffffff];
+
   constructor(
     scene: Phaser.Scene,
     scoreManager: ScoreManager,
@@ -22,7 +30,32 @@ export class MergeManager {
     this.onDrinkCreated = onDrinkCreated;
     this.onDrinkRemoved = onDrinkRemoved;
 
+    this.splashEmitter = this.scene.add.particles(0, 0, 'particle_circle', {
+      speed: { min: 60, max: 180 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.7, end: 0 },
+      tint: { onEmit: () => this.splashTint },
+      lifespan: { min: 350, max: 550 },
+      emitting: false
+    });
+
+    this.starEmitter = this.scene.add.particles(0, 0, 'particle_star', {
+      speed: { min: 40, max: 140 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.5, end: 0 },
+      tint: { onEmit: () => Phaser.Utils.Array.GetRandom(this.starTints) as number },
+      lifespan: { min: 400, max: 600 },
+      emitting: false
+    });
+
+    this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroyEffects());
+
     this.setupCollisionListener();
+  }
+
+  private destroyEffects(): void {
+    this.splashEmitter.destroy();
+    this.starEmitter.destroy();
   }
 
   private setupCollisionListener(): void {
@@ -136,29 +169,15 @@ export class MergeManager {
   }
 
   private triggerMergeEffects(x: number, y: number, def: typeof DRINKS[0]): void {
-    // 1. Particle splash
-    const emitter = this.scene.add.particles(x, y, 'particle_circle', {
-      speed: { min: 60, max: 180 },
-      angle: { min: 0, max: 360 },
-      scale: { start: 0.7, end: 0 },
-      tint: def.primaryColor,
-      lifespan: { min: 350, max: 550 },
-      quantity: 14,
-      emitting: false
-    });
-    emitter.explode(14, x, y);
+    // 1. Particle splash (bring to top so it layers like a freshly added emitter)
+    this.splashTint = def.primaryColor;
+    this.scene.children.bringToTop(this.splashEmitter);
+    this.splashEmitter.explode(14, x, y);
 
     // 2. Star sparkles
-    const starEmitter = this.scene.add.particles(x, y, 'particle_star', {
-      speed: { min: 40, max: 140 },
-      angle: { min: 0, max: 360 },
-      scale: { start: 0.5, end: 0 },
-      tint: [0xffffff, def.secondaryColor],
-      lifespan: { min: 400, max: 600 },
-      quantity: 8,
-      emitting: false
-    });
-    starEmitter.explode(8, x, y);
+    this.starTints[1] = def.secondaryColor;
+    this.scene.children.bringToTop(this.starEmitter);
+    this.starEmitter.explode(8, x, y);
 
     // 3. Shockwave ring expansion
     const ring = this.scene.add.sprite(x, y, 'shockwave_ring');
@@ -175,8 +194,6 @@ export class MergeManager {
       ease: 'Quad.easeOut',
       onComplete: () => {
         ring.destroy();
-        emitter.destroy();
-        starEmitter.destroy();
       }
     });
 
