@@ -189,4 +189,28 @@ export class GameScene extends Phaser.Scene {
     }
     this.scene.start('MenuScene');
   }
+
+  // --- Debug/test hooks (used only by src/debug.ts) ---
+
+  /** Places a drink of `level` at (x, y), tracked like a launched drink. */
+  public debugSpawnDrink(level: number, x: number, y: number): Drink {
+    const drink = new Drink(this, x, y, level);
+    this.droppedDrinks.push(drink);
+    if (drink.level > this.highestDrinkThisGame) {
+      this.highestDrinkThisGame = drink.level;
+    }
+    return drink;
+  }
+
+  /** Sets the current score to `score` (also updates the stored best if exceeded). */
+  public debugSetScore(score: number): void {
+    this.scoreManager.addScore(score - this.scoreManager.getScore());
+  }
+
+  /** Ends the current run immediately, as if the danger timer had expired. */
+  public debugForceGameOver(): void {
+    if (this.isGameActive) {
+      this.handleGameOver();
+    }
+  }
 }
