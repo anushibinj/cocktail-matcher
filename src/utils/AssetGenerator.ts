@@ -24,7 +24,10 @@ export class AssetGenerator {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
-  private static generateDrinkTextures(scene: Phaser.Scene, proceduralDrinkLevels?: Set<number>): void {
+  private static generateDrinkTextures(
+    scene: Phaser.Scene,
+    proceduralDrinkLevels?: Set<number>
+  ): void {
     DRINKS.forEach((drink) => {
       if (proceduralDrinkLevels && !proceduralDrinkLevels.has(drink.level)) {
         return; // real artwork already loaded under this texture key
@@ -78,7 +81,7 @@ export class AssetGenerator {
     cx: number,
     cy: number,
     radius: number,
-    drink: typeof DRINKS[0]
+    drink: (typeof DRINKS)[0]
   ): void {
     ctx.save();
 
@@ -402,10 +405,26 @@ export class AssetGenerator {
     // Mint leaves floating
     ctx.fillStyle = '#38b000';
     ctx.beginPath();
-    ctx.ellipse(cx - radius * 0.15, cy - radius * 0.2, radius * 0.22, radius * 0.1, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(
+      cx - radius * 0.15,
+      cy - radius * 0.2,
+      radius * 0.22,
+      radius * 0.1,
+      -Math.PI / 4,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(cx + radius * 0.1, cy + radius * 0.15, radius * 0.22, radius * 0.1, Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(
+      cx + radius * 0.1,
+      cy + radius * 0.15,
+      radius * 0.22,
+      radius * 0.1,
+      Math.PI / 4,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
 
     // Lime half-wheel inside
@@ -695,9 +714,9 @@ export class AssetGenerator {
 
     // 3-Tone Tequila Sunrise Layered Liquid (Yellow -> Orange -> Red Grenadine)
     const grad = ctx.createLinearGradient(0, top, 0, apexY);
-    grad.addColorStop(0, '#ffea00');    // Yellow top
-    grad.addColorStop(0.5, '#ff7b00');  // Orange middle
-    grad.addColorStop(1, '#9d0208');    // Crimson red grenadine base
+    grad.addColorStop(0, '#ffea00'); // Yellow top
+    grad.addColorStop(0.5, '#ff7b00'); // Orange middle
+    grad.addColorStop(1, '#9d0208'); // Crimson red grenadine base
     ctx.fillStyle = grad;
 
     ctx.beginPath();
@@ -903,9 +922,9 @@ export class AssetGenerator {
 
     // 1. Tropical Beach Sky (Sunny Caribbean Gradient)
     const skyGrad = ctx.createLinearGradient(0, 0, 0, height * 0.4);
-    skyGrad.addColorStop(0, '#38bdf8');     // Bright azure sky
-    skyGrad.addColorStop(0.6, '#7dd3fc');  // Soft sky cyan
-    skyGrad.addColorStop(1, '#bae6fd');    // Horizon glow
+    skyGrad.addColorStop(0, '#38bdf8'); // Bright azure sky
+    skyGrad.addColorStop(0.6, '#7dd3fc'); // Soft sky cyan
+    skyGrad.addColorStop(1, '#bae6fd'); // Horizon glow
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, width, height * 0.4);
 
@@ -986,7 +1005,7 @@ export class AssetGenerator {
     // Palm fronds
     ctx.fillStyle = '#15803d';
     for (let i = 0; i < 5; i++) {
-      const angle = (i * 0.3) - 0.6;
+      const angle = i * 0.3 - 0.6;
       ctx.save();
       ctx.rotate(angle);
       ctx.beginPath();

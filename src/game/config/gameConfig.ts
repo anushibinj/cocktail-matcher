@@ -56,10 +56,18 @@ export const GAME_CONFIG = {
     WALL_THICKNESS: 24,
     CORNER_RADIUS: 28,
     // Bounds
-    get LEFT(): number { return this.CENTER_X - this.WIDTH / 2; },     // 70
-    get RIGHT(): number { return this.CENTER_X + this.WIDTH / 2; },   // 650
-    get TOP(): number { return this.TOP_Y; },
-    get BOTTOM(): number { return this.BOTTOM_Y; }
+    get LEFT(): number {
+      return this.CENTER_X - this.WIDTH / 2;
+    }, // 70
+    get RIGHT(): number {
+      return this.CENTER_X + this.WIDTH / 2;
+    }, // 650
+    get TOP(): number {
+      return this.TOP_Y;
+    },
+    get BOTTOM(): number {
+      return this.BOTTOM_Y;
+    }
   },
 
   // Launcher & Danger Heights (Upward Layout: Launch from Bottom, Stack at Top)

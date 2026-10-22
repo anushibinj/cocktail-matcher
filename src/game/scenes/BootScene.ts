@@ -26,17 +26,25 @@ export class BootScene extends Phaser.Scene {
 
     const progressBar = this.add.graphics();
 
-    const loadingText = this.add.text(WIDTH / 2, HEIGHT / 2 - 50, 'Mixing Cocktails...', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#ffd166'
-    }).setOrigin(0.5);
+    const loadingText = this.add
+      .text(WIDTH / 2, HEIGHT / 2 - 50, 'Mixing Cocktails...', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '22px',
+        fontStyle: 'bold',
+        color: '#ffd166'
+      })
+      .setOrigin(0.5);
 
     const drawProgress = (value: number) => {
       progressBar.clear();
       progressBar.fillStyle(0xff006e, 1);
-      progressBar.fillRoundedRect(WIDTH / 2 - 156, HEIGHT / 2 - 16, 312 * Math.min(1, value), 32, 16);
+      progressBar.fillRoundedRect(
+        WIDTH / 2 - 156,
+        HEIGHT / 2 - 16,
+        312 * Math.min(1, value),
+        32,
+        16
+      );
     };
     drawProgress(0);
     this.load.on('progress', drawProgress);

@@ -67,48 +67,49 @@ export class MergeManager {
   }
 
   private setupCollisionListener(): void {
-    this.scene.matter.world.on('collisionstart', (event: Phaser.Physics.Matter.Events.CollisionStartEvent) => {
-      // Paused or game over: no merges, score or collision audio
-      if (!this.isEnabled) return;
+    this.scene.matter.world.on(
+      'collisionstart',
+      (event: Phaser.Physics.Matter.Events.CollisionStartEvent) => {
+        // Paused or game over: no merges, score or collision audio
+        if (!this.isEnabled) return;
 
-      event.pairs.forEach((pair) => {
-        const bodyA = pair.bodyA;
-        const bodyB = pair.bodyB;
+        event.pairs.forEach((pair) => {
+          const bodyA = pair.bodyA;
+          const bodyB = pair.bodyB;
 
-        // Collision sound with floor or wall
-        if (
-          (bodyA.label === 'drink' && bodyB.label.startsWith('wall')) ||
-          (bodyB.label === 'drink' && bodyA.label.startsWith('wall')) ||
-          (bodyA.label === 'drink' && bodyB.label === 'floor') ||
-          (bodyB.label === 'drink' && bodyA.label === 'floor')
-        ) {
-          const vA = bodyA.velocity || { x: 0, y: 0 };
-          const vB = bodyB.velocity || { x: 0, y: 0 };
-          const speed = Math.sqrt(
-            (vA.x - vB.x) * (vA.x - vB.x) + (vA.y - vB.y) * (vA.y - vB.y)
-          );
-          AudioManager.getInstance().playWallTap(Math.min(1.0, speed / 5));
-        }
-
-        // Check if both are drinks
-        if (bodyA.label === 'drink' && bodyB.label === 'drink') {
-          const drinkA = (bodyA as unknown as { gameObject: Drink }).gameObject;
-          const drinkB = (bodyB as unknown as { gameObject: Drink }).gameObject;
-
-          if (drinkA && drinkB && drinkA instanceof Drink && drinkB instanceof Drink) {
+          // Collision sound with floor or wall
+          if (
+            (bodyA.label === 'drink' && bodyB.label.startsWith('wall')) ||
+            (bodyB.label === 'drink' && bodyA.label.startsWith('wall')) ||
+            (bodyA.label === 'drink' && bodyB.label === 'floor') ||
+            (bodyB.label === 'drink' && bodyA.label === 'floor')
+          ) {
             const vA = bodyA.velocity || { x: 0, y: 0 };
             const vB = bodyB.velocity || { x: 0, y: 0 };
-            const relSpeed = Math.sqrt(
-              (vA.x - vB.x) * (vA.x - vB.x) + (vA.y - vB.y) * (vA.y - vB.y)
-            );
-            if (relSpeed > 0.3) {
-              AudioManager.getInstance().playGlassClink(Math.min(1.0, relSpeed / 6));
-            }
-            this.handleDrinkCollision(drinkA, drinkB);
+            const speed = Math.sqrt((vA.x - vB.x) * (vA.x - vB.x) + (vA.y - vB.y) * (vA.y - vB.y));
+            AudioManager.getInstance().playWallTap(Math.min(1.0, speed / 5));
           }
-        }
-      });
-    });
+
+          // Check if both are drinks
+          if (bodyA.label === 'drink' && bodyB.label === 'drink') {
+            const drinkA = (bodyA as unknown as { gameObject: Drink }).gameObject;
+            const drinkB = (bodyB as unknown as { gameObject: Drink }).gameObject;
+
+            if (drinkA && drinkB && drinkA instanceof Drink && drinkB instanceof Drink) {
+              const vA = bodyA.velocity || { x: 0, y: 0 };
+              const vB = bodyB.velocity || { x: 0, y: 0 };
+              const relSpeed = Math.sqrt(
+                (vA.x - vB.x) * (vA.x - vB.x) + (vA.y - vB.y) * (vA.y - vB.y)
+              );
+              if (relSpeed > 0.3) {
+                AudioManager.getInstance().playGlassClink(Math.min(1.0, relSpeed / 6));
+              }
+              this.handleDrinkCollision(drinkA, drinkB);
+            }
+          }
+        });
+      }
+    );
   }
 
   public setEnabled(enabled: boolean): void {
@@ -183,7 +184,7 @@ export class MergeManager {
     });
   }
 
-  private triggerMergeEffects(x: number, y: number, def: typeof DRINKS[0]): void {
+  private triggerMergeEffects(x: number, y: number, def: (typeof DRINKS)[0]): void {
     // 1. Particle splash (bring to top so it layers like a freshly added emitter)
     this.splashTint = def.primaryColor;
     this.scene.children.bringToTop(this.splashEmitter);
@@ -207,7 +208,7 @@ export class MergeManager {
     }
   }
 
-  private playShockwave(ring: Phaser.GameObjects.Sprite, def: typeof DRINKS[0]): void {
+  private playShockwave(ring: Phaser.GameObjects.Sprite, def: (typeof DRINKS)[0]): void {
     ring.setActive(true).setVisible(true);
     ring.setTint(def.primaryColor);
     ring.setScale(0.1);
