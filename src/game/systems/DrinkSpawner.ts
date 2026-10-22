@@ -12,6 +12,7 @@ export class DrinkSpawner {
   private nextLevel: number = 0;
   private isCoolingDown: boolean = false;
   private isEnabled: boolean = true;
+  private cooldownTimer: Phaser.Time.TimerEvent | null = null;
   private currentTargetX: number = GAME_CONFIG.BOARD.CENTER_X;
   private onNextDrinkChanged?: (level: number) => void;
   private onDrinkDropped?: (drink: Drink) => void;
@@ -126,23 +127,34 @@ export class DrinkSpawner {
       this.onDrinkDropped(drink);
     }
 
-    // Cooldown before next drink appears at launcher
-    this.scene.time.delayedCall(GAME_CONFIG.DROP_COOLDOWN_MS, () => {
-      if (this.isEnabled) {
-        this.currentLevel = this.nextLevel;
-        this.nextLevel = this.getRandomSpawnLevel();
+    // Cooldown before next drink appears at launcher. The callback must
+    // always end the cooldown, even if the spawner was disabled (paused)
+    // meanwhile; otherwise nothing ever clears isCoolingDown and launching
+    // is soft-locked. Only the guidance line depends on isEnabled, and
+    // drawGuidanceLine() already checks that.
+    this.cooldownTimer = this.scene.time.delayedCall(GAME_CONFIG.DROP_COOLDOWN_MS, () => {
+      this.cooldownTimer = null;
+      this.currentLevel = this.nextLevel;
+      this.nextLevel = this.getRandomSpawnLevel();
 
-        if (this.onNextDrinkChanged) {
-          this.onNextDrinkChanged(this.nextLevel);
-        }
-
-        this.updatePreviewTexture();
-        this.previewSprite.setVisible(true);
-        this.isCoolingDown = false;
-        this.popInPreview();
-        this.drawGuidanceLine();
+      if (this.onNextDrinkChanged) {
+        this.onNextDrinkChanged(this.nextLevel);
       }
+
+      this.updatePreviewTexture();
+      this.previewSprite.setVisible(true);
+      this.isCoolingDown = false;
+      this.popInPreview();
+      this.drawGuidanceLine();
     });
+  }
+
+  private cancelCooldown(): void {
+    if (this.cooldownTimer) {
+      this.cooldownTimer.remove(false);
+      this.cooldownTimer = null;
+    }
+    this.isCoolingDown = false;
   }
 
   private updatePreviewTexture(): void {
@@ -198,7 +210,9 @@ export class DrinkSpawner {
   }
 
   public reset(): void {
-    this.isCoolingDown = false;
+    // A cooldown still pending from the previous game would otherwise fire
+    // after the restart and advance the freshly rolled queue a second time.
+    this.cancelCooldown();
     this.isEnabled = true;
     this.currentTargetX = GAME_CONFIG.BOARD.CENTER_X;
     this.currentLevel = this.getRandomSpawnLevel();
