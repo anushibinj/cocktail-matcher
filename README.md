@@ -44,17 +44,17 @@ A cheerful, relaxing tropical cocktail drop-and-merge casual game built with **T
 
 ### 1. Prerequisites
 - **Node.js** (v18+ recommended)
-- **npm** (v9+)
+- **pnpm** (the version pinned in `package.json` → `packageManager`; `corepack enable` installs it)
 
 ### 2. Install & Run Dev Server
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Open `http://localhost:3000` in your desktop browser to play immediately!
 
-The dev server listens on `localhost` only. To test on a phone or tablet on the same network, run `npm run dev:lan` (or `pnpm run dev:lan`) instead and open the network URL printed in the terminal. Only do this on a trusted network, since it exposes the dev server to other devices.
+The dev server listens on `localhost` only. To test on a phone or tablet on the same network, run `pnpm run dev:lan` instead and open the network URL printed in the terminal. Only do this on a trusted network, since it exposes the dev server to other devices.
 
 ---
 
@@ -63,8 +63,8 @@ The dev server listens on `localhost` only. To test on a phone or tablet on the 
 To test the optimized production bundle locally:
 
 ```bash
-npm run build
-npm run preview
+pnpm run build
+pnpm run preview
 ```
 
 The output files are generated in the `dist/` directory.
@@ -78,13 +78,15 @@ pnpm run format        # format TypeScript and config files with Prettier
 pnpm run format:check  # check formatting without writing
 ```
 
+The `ci` GitHub Actions workflow runs these checks plus tests and the production build on every pull request and on pushes to `master`.
+
 ---
 
 ## 🌐 Deploying to Firebase Hosting
 
 1. **Install Firebase CLI** (if not already installed):
    ```bash
-   npm install -g firebase-tools
+   pnpm add -g firebase-tools
    ```
 
 2. **Login to Firebase**:
@@ -99,7 +101,7 @@ pnpm run format:check  # check formatting without writing
 
 4. **Build and Deploy**:
    ```bash
-   npm run build
+   pnpm run build
    firebase deploy --only hosting
    ```
 
