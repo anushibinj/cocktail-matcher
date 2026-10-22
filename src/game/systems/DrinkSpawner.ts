@@ -12,7 +12,8 @@ export class DrinkSpawner {
   private currentLevel: number = 0;
   private nextLevel: number = 0;
   private isCoolingDown: boolean = false;
-  private isEnabled: boolean = true;
+  // The scene's phase check; input and the guidance line only work while playing
+  private isPlaying: () => boolean;
   private cooldownTimer: Phaser.Time.TimerEvent | null = null;
   // Id of the pointer whose press started an aiming gesture, or null. Only
   // that pointer's release launches, so taps on buttons (which never arm)
@@ -24,10 +25,12 @@ export class DrinkSpawner {
 
   constructor(
     scene: Phaser.Scene,
+    isPlaying: () => boolean,
     onNextDrinkChanged?: (level: number) => void,
     onDrinkDropped?: (drink: Drink) => void
   ) {
     this.scene = scene;
+    this.isPlaying = isPlaying;
     this.onNextDrinkChanged = onNextDrinkChanged;
     this.onDrinkDropped = onDrinkDropped;
 
@@ -62,7 +65,7 @@ export class DrinkSpawner {
 
   private setupInput(): void {
     this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isEnabled) return;
+      if (!this.isPlaying()) return;
       if (this.armedPointerId !== null && pointer.id !== this.armedPointerId) return;
       this.handlePointerMove(pointer.x);
     });
@@ -71,14 +74,14 @@ export class DrinkSpawner {
       'pointerdown',
       (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
         // Phaser emits a button's own pointerdown before this scene-wide one,
-        // so a button that just re-enabled the spawner (Resume, Play Again)
+        // so a button that just resumed play (Resume, Play Again)
         // still shows up in currentlyOver here and must not arm a launch.
         if (this.isOtherArmedPointerDown(pointer)) return;
         // Any arm left at this point is stale (its release was lost), so drop
         // it before the button check; otherwise this press's release would
         // match it and launch from a HUD tap.
         this.armedPointerId = null;
-        if (!this.isEnabled || currentlyOver.length > 0) return;
+        if (!this.isPlaying() || currentlyOver.length > 0) return;
         this.armedPointerId = pointer.id;
         this.handlePointerMove(pointer.x);
         this.drawGuidanceLine();
@@ -90,7 +93,7 @@ export class DrinkSpawner {
       this.armedPointerId = null;
       // Phaser reports an OS-cancelled touch (edge swipe, call overlay) as a
       // pointerup with wasCanceled set; that is not a release to launch on.
-      if (!this.isEnabled || pointer.wasCanceled) return;
+      if (!this.isPlaying() || pointer.wasCanceled) return;
       this.launchCurrentDrink();
     });
 
@@ -123,7 +126,7 @@ export class DrinkSpawner {
 
   private drawGuidanceLine(): void {
     this.guidanceGfx.clear();
-    if (!this.isEnabled || this.isCoolingDown || !this.previewSprite.visible) {
+    if (!this.isPlaying() || this.isCoolingDown || !this.previewSprite.visible) {
       return;
     }
 
@@ -143,7 +146,7 @@ export class DrinkSpawner {
   }
 
   private launchCurrentDrink(): void {
-    if (this.isCoolingDown || !this.isEnabled || !this.previewSprite.visible) return;
+    if (this.isCoolingDown || !this.isPlaying() || !this.previewSprite.visible) return;
 
     this.isCoolingDown = true;
     this.previewSprite.setVisible(false);
@@ -165,10 +168,10 @@ export class DrinkSpawner {
     }
 
     // Cooldown before next drink appears at launcher. The callback must
-    // always end the cooldown, even if the spawner was disabled (paused)
-    // meanwhile; otherwise nothing ever clears isCoolingDown and launching
-    // is soft-locked. Only the guidance line depends on isEnabled, and
-    // drawGuidanceLine() already checks that.
+    // always end the cooldown, even if play was paused meanwhile; otherwise
+    // nothing ever clears isCoolingDown and launching is soft-locked. Only
+    // the guidance line depends on the phase, and drawGuidanceLine() already
+    // checks that.
     this.cooldownTimer = this.scene.time.delayedCall(GAME_CONFIG.DROP_COOLDOWN_MS, () => {
       this.cooldownTimer = null;
       this.finishCooldown();
@@ -243,9 +246,9 @@ export class DrinkSpawner {
     return pickWeightedLevel(GAME_CONFIG.SPAWN_DISTRIBUTION, gameRandom);
   }
 
-  public setEnabled(enabled: boolean): void {
-    this.isEnabled = enabled;
-    if (!enabled) {
+  /** Called by the scene's setPhase(): leaving play drops any aim in progress. */
+  public applyPhase(): void {
+    if (!this.isPlaying()) {
       this.armedPointerId = null;
       this.guidanceGfx.clear();
     } else {
@@ -258,7 +261,6 @@ export class DrinkSpawner {
     // A cooldown still pending from the previous game would otherwise fire
     // after the restart and advance the freshly rolled queue a second time.
     this.cancelCooldown();
-    this.isEnabled = true;
     this.currentTargetX = GAME_CONFIG.BOARD.CENTER_X;
     this.currentLevel = this.getRandomSpawnLevel();
     this.nextLevel = this.getRandomSpawnLevel();

@@ -118,6 +118,7 @@ export class GameScene extends Phaser.Scene {
     // 9. Drink Spawner
     this.spawner = new DrinkSpawner(
       this,
+      () => this.isPlaying(),
       undefined,
       (droppedDrink) => {
         this.droppedDrinks.push(droppedDrink);
@@ -161,7 +162,6 @@ export class GameScene extends Phaser.Scene {
     switch (next) {
       case 'playing':
         this.unfreezeGameplay();
-        this.spawner.setEnabled(true);
         // No-op after a restart, whose spawner.reset() already cancelled it
         this.spawner.finishPendingCooldown();
         break;
@@ -169,9 +169,9 @@ export class GameScene extends Phaser.Scene {
       case 'gameOver':
       case 'exiting':
         this.freezeGameplay();
-        this.spawner.setEnabled(false);
         break;
     }
+    this.spawner.applyPhase();
   }
 
   public update(_time: number, delta: number): void {
