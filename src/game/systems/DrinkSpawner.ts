@@ -170,19 +170,35 @@ export class DrinkSpawner {
     // drawGuidanceLine() already checks that.
     this.cooldownTimer = this.scene.time.delayedCall(GAME_CONFIG.DROP_COOLDOWN_MS, () => {
       this.cooldownTimer = null;
-      this.currentLevel = this.nextLevel;
-      this.nextLevel = this.getRandomSpawnLevel();
-
-      if (this.onNextDrinkChanged) {
-        this.onNextDrinkChanged(this.nextLevel);
-      }
-
-      this.updatePreviewTexture();
-      this.previewSprite.setVisible(true);
-      this.isCoolingDown = false;
-      this.popInPreview();
-      this.drawGuidanceLine();
+      this.finishCooldown();
     });
+  }
+
+  private finishCooldown(): void {
+    this.currentLevel = this.nextLevel;
+    this.nextLevel = this.getRandomSpawnLevel();
+
+    if (this.onNextDrinkChanged) {
+      this.onNextDrinkChanged(this.nextLevel);
+    }
+
+    this.updatePreviewTexture();
+    this.previewSprite.setVisible(true);
+    this.isCoolingDown = false;
+    this.popInPreview();
+    this.drawGuidanceLine();
+  }
+
+  /**
+   * Ends a cooldown left pending by a pause right away (advancing the queue
+   * once), so the preview is back and launchable the moment play resumes.
+   * Restart uses cancelCooldown() instead, which doesn't advance.
+   */
+  public finishPendingCooldown(): void {
+    if (!this.cooldownTimer) return;
+    this.cooldownTimer.remove(false);
+    this.cooldownTimer = null;
+    this.finishCooldown();
   }
 
   private cancelCooldown(): void {

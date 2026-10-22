@@ -177,6 +177,7 @@ export class GameScene extends Phaser.Scene {
     this.unfreezeGameplay();
     this.isGameActive = true;
     this.spawner.setEnabled(true);
+    this.spawner.finishPendingCooldown();
   }
 
   /**
