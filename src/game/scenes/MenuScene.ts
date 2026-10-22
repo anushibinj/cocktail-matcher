@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { SaveManager } from '../../storage/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
+import { UIButton } from '../ui/components/UIButton';
+import { UIToggle, SOUND_SETTING, MUSIC_SETTING } from '../ui/components/UIToggle';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -87,26 +89,27 @@ export class MenuScene extends Phaser.Scene {
     bestCard.add([bestBg, bestLabel, bestVal]);
 
     // Play Button
-    const playBtn = this.add.sprite(WIDTH / 2, HEIGHT * 0.68, 'ui_btn_primary').setDisplaySize(280, 78);
-    playBtn.setInteractive({ useHandCursor: true });
-
-    const playText = this.add.text(WIDTH / 2, HEIGHT * 0.68, 'PLAY NOW', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      shadow: {
-        offsetX: 0,
-        offsetY: 2,
-        color: 'rgba(0,0,0,0.4)',
-        blur: 4,
-        fill: true
+    const playBtn = new UIButton(this, WIDTH / 2, HEIGHT * 0.68, {
+      variant: 'primary',
+      width: 280,
+      height: 78,
+      text: 'PLAY NOW',
+      label: 'Play now',
+      textStyle: {
+        fontSize: '28px',
+        shadow: {
+          offsetX: 0,
+          offsetY: 2,
+          color: 'rgba(0,0,0,0.4)',
+          blur: 4,
+          fill: true
+        }
       }
-    }).setOrigin(0.5);
+    });
 
     // Pulse animation for Play button
     this.tweens.add({
-      targets: [playBtn, playText],
+      targets: playBtn,
       scaleX: 1.05,
       scaleY: 1.05,
       duration: 800,
@@ -115,8 +118,9 @@ export class MenuScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
-    playBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
+    playBtn.on(UIButton.EVENTS.ACTIVATE, () => {
+      // Ignore further taps while the fade-out runs
+      playBtn.setEnabled(false);
       AudioManager.getInstance().playRestart();
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.time.delayedCall(200, () => {
@@ -139,33 +143,22 @@ export class MenuScene extends Phaser.Scene {
 
   private createAudioControls(): void {
     const { WIDTH } = GAME_CONFIG;
+    const iconStyle = { variant: 'icon' as const, width: 48, height: 48, textStyle: { fontSize: '22px' } };
 
-    // Sound toggle
-    const soundBtn = this.add.sprite(WIDTH - 110, 60, 'ui_btn_circle').setDisplaySize(48, 48);
-    soundBtn.setInteractive({ useHandCursor: true });
-    const soundText = this.add.text(WIDTH - 110, 60, SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇', {
-      fontSize: '22px'
-    }).setOrigin(0.5);
-
-    soundBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
-      const current = SaveManager.getInstance().getSoundEnabled();
-      AudioManager.getInstance().setSoundEnabled(!current);
-      soundText.setText(!current ? '🔊' : '🔇');
+    new UIToggle(this, WIDTH - 110, 60, {
+      ...iconStyle,
+      setting: SOUND_SETTING,
+      onText: '🔊',
+      offText: '🔇',
+      label: 'Sound effects'
     });
 
-    // Music toggle
-    const musicBtn = this.add.sprite(WIDTH - 50, 60, 'ui_btn_circle').setDisplaySize(48, 48);
-    musicBtn.setInteractive({ useHandCursor: true });
-    const musicText = this.add.text(WIDTH - 50, 60, SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫', {
-      fontSize: '22px'
-    }).setOrigin(0.5);
-
-    musicBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
-      const current = SaveManager.getInstance().getMusicEnabled();
-      AudioManager.getInstance().setMusicEnabled(!current);
-      musicText.setText(!current ? '🎵' : '🚫');
+    new UIToggle(this, WIDTH - 50, 60, {
+      ...iconStyle,
+      setting: MUSIC_SETTING,
+      onText: '🎵',
+      offText: '🚫',
+      label: 'Music'
     });
   }
 }
