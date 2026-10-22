@@ -2283,7 +2283,7 @@ Visual-diff baselines across many devices. Real-device farms.
 
 #### Evidence and current behavior
 
-`package.json` has only `dev`, `build` and `preview`. There is no ESLint or Prettier configuration. CLAUDE.md says "There is no test suite and no lint script configured". The code relies on non-null assertions (more than 40 `this.ctx!` occurrences in `AudioManager.ts`) and `as unknown as` casts (`MergeManager.ts:51-52`), and uses deprecated `substr` (`Drink.ts:19`), which a linter would flag.
+`package.json` has only `dev`, `build` and `preview`. There is no ESLint or Prettier configuration. CLAUDE.md says "There is no test suite and no lint script configured". The code relies on non-null assertions (34 `this.ctx!` and 12 `this.sfxGain!` in `AudioManager.ts`) and `as unknown as` casts (`MergeManager.ts:51-52`), and uses deprecated `substr` (`Drink.ts:19`), which a linter would flag.
 
 #### Problem and impact
 
@@ -2651,3 +2651,69 @@ Proofread screenshots of menu, pause, ticket and Game Over at 390×844. Grep for
 #### Out of scope
 
 Tutorial mechanics (UX004). Translation.
+
+## Execution plan
+
+Each TODO ID appears exactly once below. Rows are in the recommended order. Rows marked as parallel-safe can be worked on by separate agents at the same time once their dependencies are met.
+
+| Order | Phase | TODO IDs | Why this order | Dependencies | Can one agent combine these? | Combination rationale | Parallel work |
+|---|---|---|---|---|---|---|---|
+| 1 | 1 – Critical lifecycle fixes | BUG002, BUG003 | The only P0 (soft-lock) plus the most frequent input defect. Both live in `DrinkSpawner`'s input and cooldown code. | None | Yes | Same file and the same launcher state (armed pointer, cooldown timer). Validated together by tapping controls and pausing around a launch. | Parallel with rows 4–9 (different files). Not with rows 2–3 (`GameScene` overlap). |
+| 2 | 1 – Critical lifecycle fixes | BUG001, UX006 | Pause must truly freeze before anything builds on it. Auto-pause reuses the same pause path. | Row 1 recommended first (shared pause and spawner behavior). UX006 depends on BUG001. | Yes | One pause/resume path in `GameScene` and the modals. Auto-pause is a ~20-line addition on top of it. | Parallel with rows 4–9. |
+| 3 | 1 – Critical lifecycle fixes | BUG004 | Restart race. Smaller once BUG001/BUG002 establish timer-cancellation patterns. | None (rows 1–2 recommended first) | Single item | — | Parallel with rows 4–9. |
+| 4 | 1 – Quick independent fixes | BUG005, BUG009, A11Y007 | Cheap shell fixes with immediate visible benefit on tablets, desktop and installs. | None | Yes | All edit `index.html` (container CSS, icon links, viewport meta), plus the manifest and icons. One build-and-screenshot pass validates all three. | Parallel with rows 1–3 and 5–9. |
+| 5 | 1 – Quick independent fixes | BUG008 | Removes console noise that would mask errors in all later testing. TEST002 asserts zero console errors. | None | Single item (DX003 doc edits may ride along) | — | Parallel with rows 1–4 and 6–9. Avoid running alongside PERF002/SEC002 (row 31) if `firebase.json` rewrites change. |
+| 6 | 1 – Quick independent fixes | BUG006 | XS fix that restores the "new best" reward moment. | None | Single item | — | Parallel. Must land before row 18 (UX002 also edits `GameOverModal`). |
+| 7 | 1 – Quick independent fixes | BUG007, PERF005 | Both rewrite `triggerMergeEffects`/`triggerCheckoutSparkles` emitter lifetimes. | None | Yes | The same two functions. Pooling removes the destroy-timing bug by construction. | Parallel with everything except row 23 (A11Y006 touches the shake in the same function); sequence row 7 first. |
+| 8 | 1 – Quick independent fixes | SEC001 | Patch the dev-server advisories before more people run `pnpm run dev`. Unblocks DX002. | None | Single item | — | Parallel with all rows except row 12 (lockfile and workflow overlap). |
+| 9 | 1 – Quick independent fixes | DX004 | Debug hook used to validate almost every later item and required by TEST002. | None | Single item | — | Parallel. Touches `main.ts`/`GameScene` lightly; rebase after rows 1–3. |
+| 10 | 2 – Foundations | ARCH002 | Consolidates the flags fixed in rows 1–3 into one phase model before more features add flags. | BUG001, BUG002, BUG003, BUG004 | Single item | Not combined with BUG001, to keep the bug fix small and reviewable. | Not parallel with rows 17–19 (they also add phase-aware behavior to `GameScene`/`DrinkSpawner`). |
+| 11 | 2 – Foundations | DX001 | Lint and format before the large UI refactors, so formatting churn lands once. | None | Single item | — | Parallel with rows 10, 13–15. Coordinate the formatting commit to avoid conflicts with in-flight branches. |
+| 12 | 2 – Foundations | DX002, SEC003 | CI gate protects every later change. Action pinning edits the same workflow files. | DX001, SEC001 | Yes | Same `.github/workflows/*` files, validated by the same test PR. | Parallel with rows 13–15. |
+| 13 | 2 – Foundations | ARCH001 | Shared button component; prerequisite for keyboard focus, icons and confirm dialogs. | None | Single item (A11Y004 *can* be combined if the agent has capacity) | Kept separate by default so the refactor is reviewable on its own as behavior-preserving. | Parallel with rows 10–12, 14–15. Conflicts with row 20/22 files, so those wait. |
+| 14 | 2 – Foundations | ARCH004 | Central layout constants before HUD and ticket changes in rows 17, 20, 21, 27. | None | Single item (UX001 can be combined) | Behavior-preserving refactor validated by screenshot diff. | Parallel with rows 10–13, 15. |
+| 15 | 2 – Foundations | TEST001 | Unit tests for rules before tuning (UX005) and save changes (ARCH005). | None | Single item | — | Parallel with rows 10–14. |
+| 16 | 2 – Foundations | TEST002 | End-to-end safety net for the lifecycle fixes, before UI refactors. | DX004, BUG001, BUG002, BUG003, BUG005, BUG008 | Single item | — | Parallel with rows 13–15. |
+| 17 | 3 – Core UX & accessibility | UX001 | The PRD-required next-drink preview. Uses ARCH004 anchors. | None (row 14 recommended) | Single item | — | Parallel with rows 18, 21. Not with row 20 (HUD file) or row 29 (HUD/GameOver). |
+| 18 | 3 – Core UX & accessibility | UX002 | Overflow legibility. After BUG006 because both edit `GameOverModal`. | None (row 6 first) | Single item | — | Parallel with rows 17, 19. |
+| 19 | 3 – Core UX & accessibility | UX003, A11Y001 | Both extend `DrinkSpawner` input (aim zone, cancel, keyboard aim and launch) on top of BUG003's armed-pointer model. | BUG003 | Yes | One input model; validated together with pointer and keyboard. | Parallel with rows 17–18, 21. |
+| 20 | 3 – Core UX & accessibility | A11Y004, UI001 | Bigger hit areas and replacement icons touch the same HUD, menu and modal buttons. | UI001 needs ARCH001 | Yes | Same buttons and the same screenshots and contrast measurements. | Not parallel with rows 17, 22 (same UI files). |
+| 21 | 3 – Core UX & accessibility | A11Y005 | Legible tickets and labels; the tickets are needed for the orders mechanic to make sense. | None | Single item (UI002 can be combined) | — | Parallel with rows 17–19. |
+| 22 | 3 – Core UX & accessibility | A11Y002 | Keyboard focus for menus and modals, built on the ARCH001 component. | ARCH001 | Single item (UX009 can be combined) | — | After row 20 (same files). |
+| 23 | 3 – Core UX & accessibility | A11Y006 | Reduced motion gates the effects, after the FX rewrite in row 7. | None | Single item | — | Parallel with rows 21–22, 24. |
+| 24 | 3 – Core UX & accessibility | A11Y003 | Screen-reader announcements; best after UX002 provides the danger hook. | None | Single item | Avoid combining with A11Y002: different technology (DOM live regions vs Phaser focus). | Parallel with rows 21–23. |
+| 25 | 3 – Core UX & accessibility | CONTENT001, UX004 | Copy first, then the tutorial that uses it. | UX004 depends on CONTENT001 | Yes | Same strings module and the same onboarding validation pass. | Parallel with rows 26–27. |
+| 26 | 3 – Core UX & accessibility | UX005 | Order balance; benefits from TEST001's predicate tests. | None | Single item | — | Parallel with rows 25, 27. |
+| 27 | 3 – Core UX & accessibility | UX007, UX008 | Rotation, resize and safe-area handling share the viewport and container sizing logic. | UX007 depends on ARCH004 | Yes | Same `index.html` container rules and `computeCanvasHeight`; validated together on devices. | Parallel with rows 25–26. |
+| 28 | 3 – Core UX & accessibility | UX009 | Confirm-state button for destructive actions. | ARCH001 | Single item | — | After row 22 (same `PauseModal`). |
+| 29 | 3 – Core UX & accessibility | UX010 | Progression celebration and ladder; uses HUD, Pause and Game Over after they have stabilised. | None | Single item (UI004 can be combined) | — | After rows 17, 18, 20, 22. |
+| 30 | 4 – Audio, hosting & offline | UX011, PERF001 | Both rework how BGM is created and played in `AudioManager`. | None | Yes | Same object (BGM element/buffer) and the same listening test. | Parallel with rows 31, 33. |
+| 31 | 4 – Audio, hosting & offline | PERF002, SEC002 | Both add `hosting.headers` in `firebase.json`; one preview deploy validates both. | None | Yes | Same file and the same `curl -I` validation. | Parallel with rows 30, 33. |
+| 32 | 4 – Audio, hosting & offline | PERF004 | Service worker after icons (BUG009) and cache headers (PERF002) are right. | PERF002, BUG009 | Single item | — | After row 31. |
+| 33 | 4 – Audio, hosting & offline | PERF003 | Vendor chunk split. Independent, but best before PERF004 finalises precache lists. | None | Single item | — | Parallel with rows 30–31. |
+| 34 | 5 – Maintenance & polish | ARCH003 | Renderer refactor once art changes elsewhere have settled. | None | Single item | — | Parallel with rows 35, 37–39. |
+| 35 | 5 – Maintenance & polish | ARCH005 | Save validation and migration after features that added save fields (UX004, UX010, A11Y006). | None (rows 25, 29, 23 recommended) | Single item | — | Parallel with row 34. |
+| 36 | 5 – Maintenance & polish | ARCH006 | Dead-code removal after the hooks it would otherwise delete are used. | UX001, UX011 | Single item | — | Parallel with rows 34–35. |
+| 37 | 5 – Maintenance & polish | UI002 | Font loading and shared text styles once text sizes (A11Y005) are settled. | None | Single item | — | Parallel with rows 34–36. |
+| 38 | 5 – Maintenance & polish | UI004 | Menu composition and palette after UX010 decides what the menu shows. | None | Single item | — | Parallel with rows 34–37. |
+| 39 | 5 – Maintenance & polish | UI003 | High-DPI spike last; needs a real device and may be rejected. | None | Single item | — | Parallel. |
+| 40 | 5 – Maintenance & polish | DX003 | Docs reflect the final state of the shipped features. | None (run last) | Single item | — | Parallel with rows 34–39. |
+
+**Combinations to avoid**
+- **BUG001 + ARCH002:** combining turns a P1 bug fix into a broad refactor; keep the fix small first.
+- **UX001, UX010 and A11Y004/UI001 in parallel:** all edit `HUD.ts` and button positions. Run them sequentially (rows 17 → 20 → 29).
+- **UX002 and BUG006 in parallel:** both restructure `GameOverModal.show()`. BUG006 first.
+- **ARCH006 before UX001/UX011:** it would delete `onNextDrinkChanged` wiring candidates and the `musicGain` node those items use.
+- **A11Y002 + A11Y003:** different mechanisms (Phaser focus ring vs DOM live regions), validated with different tools. Combining makes the task oversized and ambiguous.
+- **PERF004 before BUG008/BUG009/PERF002:** the service worker would precache wrong or missing assets and cache-header mistakes.
+- **DX001's formatting pass during rows 13–29:** land it in row 11 so later UI branches don't conflict on whitespace.
+
+## Final quality checks
+
+- [x] `TODO.md` is at the repository root.
+- [x] All source, config, asset, docs, CI and deployment files listed in the Review summary were inspected, with the depth noted there.
+- [x] 52 TODOs with unique IDs: BUG001–009, UX001–011, UI001–004, A11Y001–007, PERF001–005, ARCH001–006, TEST001–002, DX001–004, SEC001–003, CONTENT001.
+- [x] Every TODO cites repository-specific files, symbols and (where reliable) line numbers.
+- [x] The dependency graph is acyclic. Every referenced ID exists. Every TODO appears exactly once in the execution table.
+- [x] Confirmed defects are labelled `BUG` and state whether they were confirmed at runtime or by code inspection. Items needing device or runtime validation say so.
+- [x] No application source, asset or configuration files were modified during this review; only `TODO.md` was added.
