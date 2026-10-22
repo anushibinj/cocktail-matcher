@@ -18,6 +18,7 @@ export class MergeManager {
   private starEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
   private splashTint: number = 0xffffff;
   private starTints: number[] = [0xffffff, 0xffffff];
+  private ringPool: Phaser.GameObjects.Group;
 
   constructor(
     scene: Phaser.Scene,
@@ -48,6 +49,11 @@ export class MergeManager {
       emitting: false
     });
 
+    this.ringPool = this.scene.add.group({
+      classType: Phaser.GameObjects.Sprite,
+      maxSize: 8
+    });
+
     this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.destroyEffects());
 
     this.setupCollisionListener();
@@ -56,6 +62,7 @@ export class MergeManager {
   private destroyEffects(): void {
     this.splashEmitter.destroy();
     this.starEmitter.destroy();
+    this.ringPool.destroy(true);
   }
 
   private setupCollisionListener(): void {
@@ -179,11 +186,25 @@ export class MergeManager {
     this.scene.children.bringToTop(this.starEmitter);
     this.starEmitter.explode(8, x, y);
 
-    // 3. Shockwave ring expansion
-    const ring = this.scene.add.sprite(x, y, 'shockwave_ring');
+    // 3. Shockwave ring expansion (skipped if every pooled ring is in flight)
+    const ring = this.ringPool.get(x, y, 'shockwave_ring') as Phaser.GameObjects.Sprite | null;
+    if (ring) {
+      this.playShockwave(ring, def);
+    }
+
+    // 4. Screen shake for larger tiers
+    if (def.level >= 5) {
+      const intensity = Math.min(0.012, 0.003 + (def.level - 5) * 0.0018);
+      this.scene.cameras.main.shake(150, intensity);
+    }
+  }
+
+  private playShockwave(ring: Phaser.GameObjects.Sprite, def: typeof DRINKS[0]): void {
+    ring.setActive(true).setVisible(true);
     ring.setTint(def.primaryColor);
     ring.setScale(0.1);
     ring.setAlpha(0.85);
+    this.scene.children.bringToTop(ring);
 
     this.scene.tweens.add({
       targets: ring,
@@ -193,14 +214,8 @@ export class MergeManager {
       duration: 350,
       ease: 'Quad.easeOut',
       onComplete: () => {
-        ring.destroy();
+        this.ringPool.killAndHide(ring);
       }
     });
-
-    // 4. Screen shake for larger tiers
-    if (def.level >= 5) {
-      const intensity = Math.min(0.012, 0.003 + (def.level - 5) * 0.0018);
-      this.scene.cameras.main.shake(150, intensity);
-    }
   }
 }
