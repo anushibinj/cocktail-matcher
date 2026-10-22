@@ -72,7 +72,7 @@ export class DrinkSpawner {
         // Phaser emits a button's own pointerdown before this scene-wide one,
         // so a button that just re-enabled the spawner (Resume, Play Again)
         // still shows up in currentlyOver here and must not arm a launch.
-        if (!this.isEnabled || this.armedPointerId !== null || currentlyOver.length > 0) return;
+        if (!this.isEnabled || currentlyOver.length > 0 || this.isOtherArmedPointerDown(pointer)) return;
         this.armedPointerId = pointer.id;
         this.handlePointerMove(pointer.x);
         this.drawGuidanceLine();
@@ -92,6 +92,14 @@ export class DrinkSpawner {
         this.armedPointerId = null;
       }
     });
+  }
+
+  // A second finger must not take over an aim in progress, but a gesture
+  // whose release never arrived (e.g. touchcancel) must not block new ones.
+  private isOtherArmedPointerDown(pointer: Phaser.Input.Pointer): boolean {
+    if (this.armedPointerId === null || this.armedPointerId === pointer.id) return false;
+    const armed = this.scene.input.manager.pointers.find(p => p.id === this.armedPointerId);
+    return !!armed && armed.isDown;
   }
 
   private handlePointerMove(rawX: number): void {
