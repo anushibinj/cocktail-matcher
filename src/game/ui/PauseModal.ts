@@ -48,14 +48,16 @@ export class PauseModal {
     cardBg.strokeRoundedRect(-240, -250, 480, 500, 24);
 
     // Title
-    const titleText = this.scene.add.text(0, -200, 'GAME PAUSED', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '34px',
-      fontStyle: 'bold',
-      color: '#48cae4',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0.5);
+    const titleText = this.scene.add
+      .text(0, -200, 'GAME PAUSED', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '34px',
+        fontStyle: 'bold',
+        color: '#48cae4',
+        stroke: '#000000',
+        strokeThickness: 4
+      })
+      .setOrigin(0.5);
 
     // How to Play box
     const helpBg = this.scene.add.graphics();
@@ -64,20 +66,29 @@ export class PauseModal {
     helpBg.lineStyle(1, 0xffffff, 0.15);
     helpBg.strokeRoundedRect(-200, -150, 400, 110, 12);
 
-    const helpTitle = this.scene.add.text(0, -135, 'HOW TO PLAY', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffd166'
-    }).setOrigin(0.5);
+    const helpTitle = this.scene.add
+      .text(0, -135, 'HOW TO PLAY', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#ffd166'
+      })
+      .setOrigin(0.5);
 
-    const helpBody = this.scene.add.text(0, -90, '🍹 Drag to aim & release to drop\n🍹 Merge identical drinks to level up\n🍹 Don\'t let the glass overflow!', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '15px',
-      color: '#e0e0ff',
-      align: 'center',
-      lineSpacing: 6
-    }).setOrigin(0.5);
+    const helpBody = this.scene.add
+      .text(
+        0,
+        -90,
+        "🍹 Drag to aim & release to drop\n🍹 Merge identical drinks to level up\n🍹 Don't let the glass overflow!",
+        {
+          fontFamily: 'Segoe UI, system-ui, sans-serif',
+          fontSize: '15px',
+          color: '#e0e0ff',
+          align: 'center',
+          lineSpacing: 6
+        }
+      )
+      .setOrigin(0.5);
 
     // Sound & Music Toggles Row
     const soundToggle = this.createToggleRow(
@@ -105,12 +116,14 @@ export class PauseModal {
     // Resume Button
     const resumeBtn = this.scene.add.sprite(0, 75, 'ui_btn_primary').setDisplaySize(240, 60);
     resumeBtn.setInteractive({ useHandCursor: true });
-    const resumeText = this.scene.add.text(0, 75, 'RESUME', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '20px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    const resumeText = this.scene.add
+      .text(0, 75, 'RESUME', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '20px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      })
+      .setOrigin(0.5);
 
     resumeBtn.on('pointerdown', () => {
       AudioManager.getInstance().playButtonClick();
@@ -119,12 +132,14 @@ export class PauseModal {
     });
 
     // Restart Button
-    const restartBtn = this.scene.add.text(0, 145, '🔄 Restart Game', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '18px',
-      fontStyle: 'bold',
-      color: '#ffd166'
-    }).setOrigin(0.5);
+    const restartBtn = this.scene.add
+      .text(0, 145, '🔄 Restart Game', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '18px',
+        fontStyle: 'bold',
+        color: '#ffd166'
+      })
+      .setOrigin(0.5);
     restartBtn.setInteractive({ useHandCursor: true });
 
     restartBtn.on('pointerdown', () => {
@@ -135,11 +150,13 @@ export class PauseModal {
     });
 
     // Main Menu Button
-    const menuBtn = this.scene.add.text(0, 195, 'Main Menu', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '16px',
-      color: '#a0a0c0'
-    }).setOrigin(0.5);
+    const menuBtn = this.scene.add
+      .text(0, 195, 'Main Menu', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '16px',
+        color: '#a0a0c0'
+      })
+      .setOrigin(0.5);
     menuBtn.setInteractive({ useHandCursor: true });
 
     menuBtn.on('pointerdown', () => {
@@ -149,11 +166,17 @@ export class PauseModal {
     });
 
     cardGroup.add([
-      cardBg, titleText,
-      helpBg, helpTitle, helpBody,
-      soundToggle, musicToggle,
-      resumeBtn, resumeText,
-      restartBtn, menuBtn
+      cardBg,
+      titleText,
+      helpBg,
+      helpTitle,
+      helpBody,
+      soundToggle,
+      musicToggle,
+      resumeBtn,
+      resumeText,
+      restartBtn,
+      menuBtn
     ]);
 
     this.container.add([backdrop, cardGroup]);
@@ -179,12 +202,14 @@ export class PauseModal {
   ): Phaser.GameObjects.Container {
     const group = this.scene.add.container(x, y);
 
-    const lbl = this.scene.add.text(0, -18, label, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#a0a0d0'
-    }).setOrigin(0.5);
+    const lbl = this.scene.add
+      .text(0, -18, label, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#a0a0d0'
+      })
+      .setOrigin(0.5);
 
     const btnBg = this.scene.add.graphics();
     let isEnabled = initialVal;
@@ -198,12 +223,14 @@ export class PauseModal {
     };
     renderBtn();
 
-    const statusText = this.scene.add.text(0, 18, isEnabled ? 'ON' : 'OFF', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '15px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    const statusText = this.scene.add
+      .text(0, 18, isEnabled ? 'ON' : 'OFF', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '15px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      })
+      .setOrigin(0.5);
 
     const hitZone = this.scene.add.zone(0, 18, 100, 36);
     hitZone.setInteractive({ useHandCursor: true });
