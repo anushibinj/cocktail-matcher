@@ -31,6 +31,10 @@ declare global {
   }
 }
 
+function restyleWorld(this: Phaser.Physics.Matter.World): void {
+  this.setCompositeRenderStyle(this.localWorld as unknown as MatterJS.CompositeType);
+}
+
 export function installDebugHook(game: Phaser.Game): void {
   const getScene = (): GameScene | null => {
     const scene = game.scene.getScene('GameScene') as GameScene | null;
@@ -46,14 +50,20 @@ export function installDebugHook(game: Phaser.Game): void {
   };
 
   const toggleMatterDebug = (): boolean => {
-    const world = requireScene().matter.world;
+    const scene = requireScene();
+    const world = scene.matter.world;
+    // Bodies only get a debug render style when created with debug on, so
+    // restyle every frame while the overlay is shown (covers new drinks).
+    scene.events.off(Phaser.Scenes.Events.UPDATE, restyleWorld);
     if (!world.debugGraphic) {
       world.createDebugGraphic();
     } else {
       world.drawDebug = !world.drawDebug;
-      if (!world.drawDebug) {
-        world.debugGraphic.clear();
-      }
+    }
+    if (world.drawDebug) {
+      scene.events.on(Phaser.Scenes.Events.UPDATE, restyleWorld, world);
+    } else {
+      world.debugGraphic.clear();
     }
     return world.drawDebug;
   };
