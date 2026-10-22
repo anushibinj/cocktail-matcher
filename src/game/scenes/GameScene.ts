@@ -140,7 +140,7 @@ export class GameScene extends Phaser.Scene {
 
     const finalScore = this.scoreManager.getScore();
     const bestScore = this.scoreManager.getBestScore();
-    const isNewBest = finalScore >= bestScore && finalScore > 0;
+    const isNewBest = this.scoreManager.hasBeatPreviousBest();
 
     SaveManager.getInstance().recordGamePlayed(this.highestDrinkThisGame);
     this.gameOverModal.show(finalScore, bestScore, isNewBest);
