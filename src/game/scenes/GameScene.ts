@@ -91,7 +91,7 @@ export class GameScene extends Phaser.Scene {
     this.orderManager.init();
 
     // 6. Game Over Manager
-    this.gameOverManager = new GameOverManager(this.board, () => {
+    this.gameOverManager = new GameOverManager(this.board, () => this.isPlaying(), () => {
       this.handleGameOver();
     });
 
