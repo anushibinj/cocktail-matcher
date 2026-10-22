@@ -63,6 +63,16 @@ export class AudioManager {
         window.removeEventListener('touchstart', unlock);
       };
 
+      // One page-level listener for the singleton, so scene restarts never
+      // stack duplicates. Stops BGM while the tab or app is in background.
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          this.suspendForBackground();
+        } else {
+          this.resumeFromBackground();
+        }
+      });
+
       window.addEventListener('pointerdown', unlock, { once: true });
       window.addEventListener('keydown', unlock, { once: true });
       window.addEventListener('touchstart', unlock, { once: true });
@@ -414,6 +424,32 @@ export class AudioManager {
     this.isBgmPlaying = false;
     if (this.bgmAudio) {
       this.bgmAudio.pause();
+    }
+  }
+
+  public suspendForBackground(): void {
+    // isBgmPlaying is left as is, so resumeFromBackground knows whether to restart
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+    }
+    if (this.ctx && this.ctx.state === 'running') {
+      this.ctx.suspend().catch(() => {});
+    }
+  }
+
+  public resumeFromBackground(): void {
+    // Resume unless closed, not just when 'suspended': iOS WebKit can come
+    // back 'interrupted' and won't auto-resume a context the page suspended
+    // itself, and in Firefox a quick hide/show can arrive while suspend()
+    // is still pending (state still 'running'); resume() queues behind it.
+    // Missing either would leave SFX silent for the rest of the session.
+    if (this.ctx && this.ctx.state !== 'closed') {
+      this.ctx.resume().catch(() => {});
+    }
+    if (this.isBgmPlaying && SaveManager.getInstance().getMusicEnabled() && this.bgmAudio) {
+      this.bgmAudio.play().catch((err) => {
+        console.log('BGM waiting for user interaction:', err);
+      });
     }
   }
 

@@ -29,6 +29,10 @@ export class OrderManager {
   private ticketViews: Map<string, Phaser.GameObjects.Container> = new Map();
   private onOrderFulfilled?: (order: ToGoOrder, drink: Drink) => void;
   private isCheckingOut: boolean = false;
+  // In-flight checkout animations and the drinks flying to a ticket, so a
+  // restart can cancel them before their onComplete scores into a new game
+  private checkoutTweens: Set<Phaser.Tweens.Tween> = new Set();
+  private flyingDrinks: Set<Drink> = new Set();
   // Created once per scene and re-fired with explode() for each checkout.
   private sparkleEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -216,13 +220,13 @@ export class OrderManager {
       }).setOrigin(0.5);
       ticketView.add(checkmark);
 
-      this.scene.tweens.add({
+      this.trackCheckoutTween(this.scene.tweens.add({
         targets: checkmark,
         scaleX: { from: 0.5, to: 1.2 },
         scaleY: { from: 0.5, to: 1.2 },
         duration: 250,
         yoyo: true
-      });
+      }));
     }
 
     // 2. Remove drink from Matter physics world immediately
@@ -241,7 +245,8 @@ export class OrderManager {
     // 0.5 — a custom artwork texture's native size rarely matches its
     // on-board display size, so an absolute target would snap the drink to
     // a wrong (often much larger) size mid-flight.
-    this.scene.tweens.add({
+    this.flyingDrinks.add(drink);
+    this.trackCheckoutTween(this.scene.tweens.add({
       targets: drink,
       x: targetX,
       y: targetY,
@@ -258,11 +263,12 @@ export class OrderManager {
         AudioManager.getInstance().playOrderComplete();
 
         // Destroy drink
+        this.flyingDrinks.delete(drink);
         drink.destroy();
 
         // Slide away ticket and spawn new order after brief delay
         if (ticketView) {
-          this.scene.tweens.add({
+          this.trackCheckoutTween(this.scene.tweens.add({
             targets: ticketView,
             y: -100,
             alpha: 0,
@@ -274,13 +280,18 @@ export class OrderManager {
               this.spawnNewOrder(slotIndex);
               this.isCheckingOut = false;
             }
-          });
+          }));
         } else {
           this.spawnNewOrder(slotIndex);
           this.isCheckingOut = false;
         }
       }
-    });
+    }));
+  }
+
+  private trackCheckoutTween(tween: Phaser.Tweens.Tween): void {
+    this.checkoutTweens.add(tween);
+    tween.once(Phaser.Tweens.Events.TWEEN_COMPLETE, () => this.checkoutTweens.delete(tween));
   }
 
   private triggerCheckoutSparkles(x: number, y: number): void {
@@ -290,6 +301,12 @@ export class OrderManager {
   }
 
   public reset(): void {
+    // Cancel any checkout still animating, so its reward, ticket slide and
+    // replacement order don't land in the new game
+    this.checkoutTweens.forEach(t => t.remove());
+    this.checkoutTweens.clear();
+    this.flyingDrinks.forEach(d => d.destroy());
+    this.flyingDrinks.clear();
     this.init();
   }
 }
