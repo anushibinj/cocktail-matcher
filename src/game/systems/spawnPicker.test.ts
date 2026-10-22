@@ -40,7 +40,15 @@ describe('pickWeightedLevel', () => {
   });
 
   it('skips a leading weight-0 entry even when the RNG returns 0', () => {
-    expect(pickWeightedLevel([{ level: 5, weight: 0 }, { level: 6, weight: 1 }], fixed(0))).toBe(6);
+    expect(
+      pickWeightedLevel(
+        [
+          { level: 5, weight: 0 },
+          { level: 6, weight: 1 }
+        ],
+        fixed(0)
+      )
+    ).toBe(6);
   });
 
   it('falls back to level 0 when every weight is 0 or the list is empty', () => {

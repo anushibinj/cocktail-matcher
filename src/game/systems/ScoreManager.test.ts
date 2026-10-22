@@ -62,7 +62,7 @@ describe('ScoreManager best score and "new best"', () => {
     expect(onScoreChanged).toHaveBeenLastCalledWith(501, 501, true);
     expect(score.getBestScore()).toBe(501);
     expect(score.hasBeatPreviousBest()).toBe(true);
-    expect(JSON.parse(storage.getItem(GAME_CONFIG.STORAGE_KEY)!).bestScore).toBe(501);
+    expect(JSON.parse(storage.getItem(GAME_CONFIG.STORAGE_KEY) ?? 'null').bestScore).toBe(501);
   });
 
   it('stays a new best for the rest of the run once beaten', () => {

@@ -17,7 +17,7 @@ const DEFAULTS = {
 let storage: MemoryStorage;
 
 function stored(): Record<string, unknown> {
-  return JSON.parse(storage.getItem(KEY)!);
+  return JSON.parse(storage.getItem(KEY) ?? 'null');
 }
 
 beforeEach(() => {
@@ -68,7 +68,12 @@ describe('SaveManager load', () => {
     expect(save.getMusicEnabled()).toBe(true);
     expect(save.getHighestDrinkUnlocked()).toBe(0);
     save.recordGamePlayed(2);
-    expect(stored()).toEqual({ ...DEFAULTS, bestScore: 900, totalGamesPlayed: 1, highestDrinkUnlocked: 2 });
+    expect(stored()).toEqual({
+      ...DEFAULTS,
+      bestScore: 900,
+      totalGamesPlayed: 1,
+      highestDrinkUnlocked: 2
+    });
   });
 
   it('falls back to defaults on corrupt JSON without throwing', () => {
