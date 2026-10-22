@@ -25,6 +25,8 @@ export class GameScene extends Phaser.Scene {
   private droppedDrinks: Drink[] = [];
   private isGameActive: boolean = true;
   private highestDrinkThisGame: number = 0;
+  // Gameplay tweens paused by freezeGameplay(), resumed by unfreezeGameplay()
+  private frozenTweens: Phaser.Tweens.Tween[] = [];
 
   constructor() {
     super({ key: 'GameScene' });
@@ -36,6 +38,10 @@ export class GameScene extends Phaser.Scene {
     this.isGameActive = true;
     this.droppedDrinks = [];
     this.highestDrinkThisGame = 0;
+    this.frozenTweens = [];
+    // The scene clock outlives a Main Menu round trip, so clear a pause
+    // left over from the previous visit's game over or pause modal.
+    this.time.paused = false;
 
     // 1. Background
     this.add.image(WIDTH / 2, HEIGHT / 2, 'bg_tropical');
@@ -136,6 +142,8 @@ export class GameScene extends Phaser.Scene {
 
   private handleGameOver(): void {
     this.isGameActive = false;
+    // Freeze before reading the score so no late merge or checkout changes it
+    this.freezeGameplay();
     this.spawner.setEnabled(false);
 
     const finalScore = this.scoreManager.getScore();
@@ -148,13 +156,39 @@ export class GameScene extends Phaser.Scene {
 
   private handlePause(): void {
     this.isGameActive = false;
+    this.freezeGameplay();
     this.spawner.setEnabled(false);
     this.pauseModal.show();
   }
 
   private resumeGame(): void {
+    this.unfreezeGameplay();
     this.isGameActive = true;
     this.spawner.setEnabled(true);
+  }
+
+  /**
+   * Stops physics, the scene clock (cooldowns, delayed calls) and every
+   * tween running right now, so nothing moves, merges or scores under a
+   * modal. Tweens created afterwards, like the modal pop-in, still play.
+   */
+  private freezeGameplay(): void {
+    if (!this.matter.world.enabled) return;
+    this.matter.world.pause();
+    this.time.paused = true;
+    this.mergeManager.setEnabled(false);
+    this.frozenTweens = this.tweens.getTweens().filter(t => t.isPlaying());
+    this.frozenTweens.forEach(t => t.pause());
+  }
+
+  private unfreezeGameplay(): void {
+    this.frozenTweens.forEach(t => {
+      if (!t.isDestroyed()) t.resume();
+    });
+    this.frozenTweens = [];
+    this.mergeManager.setEnabled(true);
+    this.time.paused = false;
+    this.matter.world.resume();
   }
 
   private restartGame(): void {
@@ -176,6 +210,7 @@ export class GameScene extends Phaser.Scene {
     this.gameOverManager.reset();
     this.spawner.reset();
     this.hud.updateScore(0, this.scoreManager.getBestScore());
+    this.unfreezeGameplay();
   }
 
   private goToMenu(): void {
