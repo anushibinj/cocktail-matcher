@@ -72,7 +72,12 @@ export class DrinkSpawner {
         // Phaser emits a button's own pointerdown before this scene-wide one,
         // so a button that just re-enabled the spawner (Resume, Play Again)
         // still shows up in currentlyOver here and must not arm a launch.
-        if (!this.isEnabled || currentlyOver.length > 0 || this.isOtherArmedPointerDown(pointer)) return;
+        if (this.isOtherArmedPointerDown(pointer)) return;
+        // Any arm left at this point is stale (its release was lost), so drop
+        // it before the button check; otherwise this press's release would
+        // match it and launch from a HUD tap.
+        this.armedPointerId = null;
+        if (!this.isEnabled || currentlyOver.length > 0) return;
         this.armedPointerId = pointer.id;
         this.handlePointerMove(pointer.x);
         this.drawGuidanceLine();
