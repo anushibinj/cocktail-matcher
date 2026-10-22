@@ -33,6 +33,8 @@ export class OrderManager {
   // restart can cancel them before their onComplete scores into a new game
   private checkoutTweens: Set<Phaser.Tweens.Tween> = new Set();
   private flyingDrinks: Set<Drink> = new Set();
+  // Created once per scene and re-fired with explode() for each checkout.
+  private sparkleEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(
     scene: Phaser.Scene,
@@ -44,6 +46,16 @@ export class OrderManager {
     this.onOrderFulfilled = onOrderFulfilled;
     this.container = this.scene.add.container(0, 0);
     this.container.setDepth(20);
+
+    this.sparkleEmitter = this.scene.add.particles(0, 0, 'particle_star', {
+      speed: { min: 60, max: 180 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.8, end: 0 },
+      tint: [0xffd700, 0x10b981, 0xffffff],
+      lifespan: { min: 400, max: 650 },
+      emitting: false
+    });
+    this.scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.sparkleEmitter.destroy());
   }
 
   public init(): void {
@@ -283,20 +295,9 @@ export class OrderManager {
   }
 
   private triggerCheckoutSparkles(x: number, y: number): void {
-    const emitter = this.scene.add.particles(x, y, 'particle_star', {
-      speed: { min: 60, max: 180 },
-      angle: { min: 0, max: 360 },
-      scale: { start: 0.8, end: 0 },
-      tint: [0xffd700, 0x10b981, 0xffffff],
-      lifespan: { min: 400, max: 650 },
-      quantity: 16,
-      emitting: false
-    });
-    emitter.explode(16, x, y);
-
-    this.scene.time.delayedCall(700, () => {
-      emitter.destroy();
-    });
+    // Bring to top so it layers like a freshly added emitter
+    this.scene.children.bringToTop(this.sparkleEmitter);
+    this.sparkleEmitter.explode(16, x, y);
   }
 
   public reset(): void {

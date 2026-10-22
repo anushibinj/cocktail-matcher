@@ -1,5 +1,11 @@
 import { SaveManager } from '../../storage/SaveManager';
 
+// Optional clink override — see src/assets/audio/README.md. Resolved at build
+// time, so the URL is undefined (and nothing is fetched) when no file exists.
+const CUSTOM_CLINK_URL: string | undefined = Object.values(
+  import.meta.glob<string>('../../assets/audio/clink.mp3', { eager: true, query: '?url', import: 'default' })
+)[0];
+
 export class AudioManager {
   private static instance: AudioManager;
   private ctx: AudioContext | null = null;
@@ -42,7 +48,7 @@ export class AudioManager {
       // Initialize BGM Audio Element with bgm.m4a
       this.initBgmAudio();
 
-      // Try loading custom clink.mp3 from assets/audio/ if present
+      // Load custom clink.mp3 from src/assets/audio/ if one was bundled
       this.loadCustomAudio();
 
       const unlock = () => {
@@ -86,15 +92,15 @@ export class AudioManager {
   }
 
   private async loadCustomAudio(): Promise<void> {
-    if (!this.ctx) return;
+    if (!this.ctx || !CUSTOM_CLINK_URL) return;
     try {
-      const response = await fetch('./assets/audio/clink.mp3');
+      const response = await fetch(CUSTOM_CLINK_URL);
       if (response.ok) {
         const arrayBuffer = await response.arrayBuffer();
         this.clinkAudioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
       }
     } catch {
-      // Custom audio file not found or fetch skipped, fallback to synthesized crystal clink
+      // Custom audio failed to fetch or decode, fallback to synthesized crystal clink
     }
   }
 
