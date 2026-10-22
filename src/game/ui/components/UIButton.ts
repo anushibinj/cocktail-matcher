@@ -121,7 +121,8 @@ export class UIButton extends Phaser.GameObjects.Container {
     this.labelText = new Phaser.GameObjects.Text(scene, 0, 0, this.text, style).setOrigin(0.5);
 
     if (this.variant === 'primary' || this.variant === 'icon') {
-      const texture = config.texture ?? (this.variant === 'primary' ? 'ui_btn_primary' : 'ui_btn_circle');
+      const texture =
+        config.texture ?? (this.variant === 'primary' ? 'ui_btn_primary' : 'ui_btn_circle');
       const sprite = new Phaser.GameObjects.Sprite(scene, 0, 0, texture);
       if (config.width !== undefined && config.height !== undefined) {
         sprite.setDisplaySize(config.width, config.height);
@@ -188,7 +189,9 @@ export class UIButton extends Phaser.GameObjects.Container {
 
   /** Accessible name for assistive tech. */
   public get accessibleLabel(): string {
-    return this.confirming && this.confirmConfig ? this.confirmConfig.label ?? this.confirmConfig.text : this.label;
+    return this.confirming && this.confirmConfig
+      ? (this.confirmConfig.label ?? this.confirmConfig.text)
+      : this.label;
   }
 
   public setAccessibleLabel(label: string): this {
@@ -240,23 +243,29 @@ export class UIButton extends Phaser.GameObjects.Container {
   }
 
   private bindPointerEvents(): void {
-    this.hitZone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, (pointer: Phaser.Input.Pointer) => {
-      this.isHovered = true;
-      this.applyState(this.isPressedBy(pointer) && pointer.isDown ? 'pressed' : 'hover');
-    });
+    this.hitZone.on(
+      Phaser.Input.Events.GAMEOBJECT_POINTER_OVER,
+      (pointer: Phaser.Input.Pointer) => {
+        this.isHovered = true;
+        this.applyState(this.isPressedBy(pointer) && pointer.isDown ? 'pressed' : 'hover');
+      }
+    );
 
     this.hitZone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => {
       this.isHovered = false;
       this.applyState('idle');
     });
 
-    this.hitZone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
-      // Only the first finger on a button owns it
-      if (this.pressedPointerId !== null && this.pressedPointerId !== pointer.id) return;
-      this.pressedPointerId = pointer.id;
-      this.pressedDownTime = pointer.downTime;
-      this.applyState('pressed');
-    });
+    this.hitZone.on(
+      Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN,
+      (pointer: Phaser.Input.Pointer) => {
+        // Only the first finger on a button owns it
+        if (this.pressedPointerId !== null && this.pressedPointerId !== pointer.id) return;
+        this.pressedPointerId = pointer.id;
+        this.pressedDownTime = pointer.downTime;
+        this.applyState('pressed');
+      }
+    );
 
     this.hitZone.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
       // downTime tells this press apart from an earlier one with the same
@@ -278,7 +287,9 @@ export class UIButton extends Phaser.GameObjects.Container {
     this.content.setScale(STATE_SCALE[this.variant][state]);
     this.content.setAlpha(state === 'disabled' ? DISABLED_ALPHA : 1);
     if (this.variant === 'secondary') {
-      this.labelText.setColor(state === 'hover' || state === 'pressed' ? this.hoverColor : this.baseColor);
+      this.labelText.setColor(
+        state === 'hover' || state === 'pressed' ? this.hoverColor : this.baseColor
+      );
     }
   }
 
@@ -303,7 +314,8 @@ export class UIButton extends Phaser.GameObjects.Container {
   }
 
   private drawPill(): void {
-    if (this.variant !== 'pill' || !(this.background instanceof Phaser.GameObjects.Graphics)) return;
+    if (this.variant !== 'pill' || !(this.background instanceof Phaser.GameObjects.Graphics))
+      return;
     const w = this.visualWidth;
     const h = this.visualHeight;
     const g = this.background;

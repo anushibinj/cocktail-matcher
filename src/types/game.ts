@@ -8,7 +8,17 @@ export interface DrinkDefinition {
   secondaryColor: number;
   accentColor: number;
   glassShape: 'tumbler' | 'martini' | 'highball' | 'hurricane' | 'chalice' | 'coconut' | 'tiki';
-  garnish: 'lime' | 'berry' | 'pineapple' | 'orange' | 'mint' | 'umbrella' | 'starfruit' | 'flower' | 'straw' | 'sparkler';
+  garnish:
+    | 'lime'
+    | 'berry'
+    | 'pineapple'
+    | 'orange'
+    | 'mint'
+    | 'umbrella'
+    | 'starfruit'
+    | 'flower'
+    | 'straw'
+    | 'sparkler';
   description: string;
 }
 

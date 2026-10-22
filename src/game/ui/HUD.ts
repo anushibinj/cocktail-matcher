@@ -63,41 +63,53 @@ export class HUD {
     const scoreBg = this.scene.add.sprite(220, bottomY, 'ui_card_bg');
     scoreBg.setDisplaySize(200, 72);
 
-    const scoreLabel = this.scene.add.text(220, bottomY - 18, 'SCORE', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#ffd166'
-    }).setOrigin(0.5);
+    const scoreLabel = this.scene.add
+      .text(220, bottomY - 18, 'SCORE', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '13px',
+        fontStyle: 'bold',
+        color: '#ffd166'
+      })
+      .setOrigin(0.5);
 
-    this.scoreText = this.scene.add.text(220, bottomY + 12, '0', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    this.scoreText = this.scene.add
+      .text(220, bottomY + 12, '0', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '28px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      })
+      .setOrigin(0.5);
 
     // 2. Best Score Card (Bottom Right)
     const bestBg = this.scene.add.sprite(500, bottomY, 'ui_card_bg');
     bestBg.setDisplaySize(200, 72);
 
-    const bestLabel = this.scene.add.text(500, bottomY - 18, 'BEST', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '13px',
-      fontStyle: 'bold',
-      color: '#ff9e00'
-    }).setOrigin(0.5);
+    const bestLabel = this.scene.add
+      .text(500, bottomY - 18, 'BEST', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '13px',
+        fontStyle: 'bold',
+        color: '#ff9e00'
+      })
+      .setOrigin(0.5);
 
-    this.bestScoreText = this.scene.add.text(500, bottomY + 12, `${SaveManager.getInstance().getBestScore()}`, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    this.bestScoreText = this.scene.add
+      .text(500, bottomY + 12, `${SaveManager.getInstance().getBestScore()}`, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '28px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      })
+      .setOrigin(0.5);
 
     this.container.add([
-      scoreBg, scoreLabel, this.scoreText,
-      bestBg, bestLabel, this.bestScoreText
+      scoreBg,
+      scoreLabel,
+      this.scoreText,
+      bestBg,
+      bestLabel,
+      this.bestScoreText
     ]);
   }
 

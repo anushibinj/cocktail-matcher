@@ -46,14 +46,16 @@ export class PauseModal {
     cardBg.strokeRoundedRect(-240, -250, 480, 500, 24);
 
     // Title
-    const titleText = this.scene.add.text(0, -200, 'GAME PAUSED', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '34px',
-      fontStyle: 'bold',
-      color: '#48cae4',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0.5);
+    const titleText = this.scene.add
+      .text(0, -200, 'GAME PAUSED', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '34px',
+        fontStyle: 'bold',
+        color: '#48cae4',
+        stroke: '#000000',
+        strokeThickness: 4
+      })
+      .setOrigin(0.5);
 
     // How to Play box
     const helpBg = this.scene.add.graphics();
@@ -62,20 +64,29 @@ export class PauseModal {
     helpBg.lineStyle(1, 0xffffff, 0.15);
     helpBg.strokeRoundedRect(-200, -150, 400, 110, 12);
 
-    const helpTitle = this.scene.add.text(0, -135, 'HOW TO PLAY', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffd166'
-    }).setOrigin(0.5);
+    const helpTitle = this.scene.add
+      .text(0, -135, 'HOW TO PLAY', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#ffd166'
+      })
+      .setOrigin(0.5);
 
-    const helpBody = this.scene.add.text(0, -90, '🍹 Drag to aim & release to drop\n🍹 Merge identical drinks to level up\n🍹 Don\'t let the glass overflow!', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '15px',
-      color: '#e0e0ff',
-      align: 'center',
-      lineSpacing: 6
-    }).setOrigin(0.5);
+    const helpBody = this.scene.add
+      .text(
+        0,
+        -90,
+        "🍹 Drag to aim & release to drop\n🍹 Merge identical drinks to level up\n🍹 Don't let the glass overflow!",
+        {
+          fontFamily: 'Segoe UI, system-ui, sans-serif',
+          fontSize: '15px',
+          color: '#e0e0ff',
+          align: 'center',
+          lineSpacing: 6
+        }
+      )
+      .setOrigin(0.5);
 
     // Sound & Music Toggles Row
     const soundToggle = this.createToggleRow(-100, -10, 'Sound FX', SOUND_SETTING);
@@ -118,10 +129,16 @@ export class PauseModal {
     });
 
     cardGroup.add([
-      cardBg, titleText,
-      helpBg, helpTitle, helpBody,
-      soundToggle, musicToggle,
-      resumeBtn, restartBtn, menuBtn
+      cardBg,
+      titleText,
+      helpBg,
+      helpTitle,
+      helpBody,
+      soundToggle,
+      musicToggle,
+      resumeBtn,
+      restartBtn,
+      menuBtn
     ]);
 
     this.container.add([backdrop, cardGroup]);
@@ -146,12 +163,14 @@ export class PauseModal {
   ): Phaser.GameObjects.Container {
     const group = this.scene.add.container(x, y);
 
-    const lbl = this.scene.add.text(0, -18, label, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#a0a0d0'
-    }).setOrigin(0.5);
+    const lbl = this.scene.add
+      .text(0, -18, label, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#a0a0d0'
+      })
+      .setOrigin(0.5);
 
     const toggle = new UIToggle(this.scene, 0, 18, {
       variant: 'pill',

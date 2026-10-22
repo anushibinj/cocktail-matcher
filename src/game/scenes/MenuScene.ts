@@ -41,29 +41,33 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Title Text
-    const title = this.add.text(0, 50, 'COCKTAIL MERGE', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '44px',
-      fontStyle: 'bold',
-      color: '#ffd166',
-      stroke: '#3b185f',
-      strokeThickness: 8,
-      shadow: {
-        offsetX: 0,
-        offsetY: 6,
-        color: 'rgba(0,0,0,0.5)',
-        blur: 10,
-        fill: true
-      }
-    }).setOrigin(0.5);
+    const title = this.add
+      .text(0, 50, 'COCKTAIL MERGE', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '44px',
+        fontStyle: 'bold',
+        color: '#ffd166',
+        stroke: '#3b185f',
+        strokeThickness: 8,
+        shadow: {
+          offsetX: 0,
+          offsetY: 6,
+          color: 'rgba(0,0,0,0.5)',
+          blur: 10,
+          fill: true
+        }
+      })
+      .setOrigin(0.5);
 
-    const subtitle = this.add.text(0, 100, 'Tropical Drop & Match', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '20px',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5);
+    const subtitle = this.add
+      .text(0, 100, 'Tropical Drop & Match', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '20px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3
+      })
+      .setOrigin(0.5);
 
     titleContainer.add([logoDrink, title, subtitle]);
 
@@ -72,19 +76,23 @@ export class MenuScene extends Phaser.Scene {
     const bestCard = this.add.container(WIDTH / 2, HEIGHT * 0.54);
 
     const bestBg = this.add.sprite(0, 0, 'ui_card_bg').setDisplaySize(240, 76);
-    const bestLabel = this.add.text(0, -18, 'BEST SCORE', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffbe0b'
-    }).setOrigin(0.5);
+    const bestLabel = this.add
+      .text(0, -18, 'BEST SCORE', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#ffbe0b'
+      })
+      .setOrigin(0.5);
 
-    const bestVal = this.add.text(0, 14, `${bestScore}`, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    const bestVal = this.add
+      .text(0, 14, `${bestScore}`, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '28px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      })
+      .setOrigin(0.5);
 
     bestCard.add([bestBg, bestLabel, bestVal]);
 
@@ -129,13 +137,15 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // How to play quick tip
-    this.add.text(WIDTH / 2, HEIGHT * 0.82, 'Drop cocktails • Match pairs • Don\'t overflow!', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '16px',
-      color: '#cfcbe8',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
+    this.add
+      .text(WIDTH / 2, HEIGHT * 0.82, "Drop cocktails • Match pairs • Don't overflow!", {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '16px',
+        color: '#cfcbe8',
+        stroke: '#000000',
+        strokeThickness: 2
+      })
+      .setOrigin(0.5);
 
     // Top Audio toggles
     this.createAudioControls();
@@ -143,7 +153,12 @@ export class MenuScene extends Phaser.Scene {
 
   private createAudioControls(): void {
     const { WIDTH } = GAME_CONFIG;
-    const iconStyle = { variant: 'icon' as const, width: 48, height: 48, textStyle: { fontSize: '22px' } };
+    const iconStyle = {
+      variant: 'icon' as const,
+      width: 48,
+      height: 48,
+      textStyle: { fontSize: '22px' }
+    };
 
     new UIToggle(this, WIDTH - 110, 60, {
       ...iconStyle,

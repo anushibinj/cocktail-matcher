@@ -3,7 +3,11 @@ import { SaveManager } from '../../storage/SaveManager';
 // Optional clink override — see src/assets/audio/README.md. Resolved at build
 // time, so the URL is undefined (and nothing is fetched) when no file exists.
 const CUSTOM_CLINK_URL: string | undefined = Object.values(
-  import.meta.glob<string>('../../assets/audio/clink.mp3', { eager: true, query: '?url', import: 'default' })
+  import.meta.glob<string>('../../assets/audio/clink.mp3', {
+    eager: true,
+    query: '?url',
+    import: 'default'
+  })
 )[0];
 
 export class AudioManager {
@@ -31,18 +35,26 @@ export class AudioManager {
   public init(): void {
     if (this.ctx) return;
     try {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioCtx();
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
       this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.setValueAtTime(SaveManager.getInstance().getSoundEnabled() ? 0.75 : 0, this.ctx.currentTime);
+      this.sfxGain.gain.setValueAtTime(
+        SaveManager.getInstance().getSoundEnabled() ? 0.75 : 0,
+        this.ctx.currentTime
+      );
       this.sfxGain.connect(this.masterGain);
 
       this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.setValueAtTime(SaveManager.getInstance().getMusicEnabled() ? 0.35 : 0, this.ctx.currentTime);
+      this.musicGain.gain.setValueAtTime(
+        SaveManager.getInstance().getMusicEnabled() ? 0.35 : 0,
+        this.ctx.currentTime
+      );
       this.musicGain.connect(this.masterGain);
 
       // Initialize BGM Audio Element with bgm.m4a
@@ -230,15 +242,15 @@ export class AudioManager {
     261.63, // C4
     293.66, // D4
     329.63, // E4
-    392.00, // G4
-    440.00, // A4
+    392.0, // G4
+    440.0, // A4
     523.25, // C5
     587.33, // D5
     659.25, // E5
     783.99, // G5
-    880.00, // A5
-    1046.50, // C6
-    1318.51  // E6
+    880.0, // A5
+    1046.5, // C6
+    1318.51 // E6
   ];
 
   public playMerge(level: number): void {
@@ -294,7 +306,7 @@ export class AudioManager {
     const now = this.ctx!.currentTime;
 
     // Fast cheerful arpeggio fanfare (C5, E5, G5, C6) + bell ping
-    const chord = [523.25, 659.25, 783.99, 1046.50];
+    const chord = [523.25, 659.25, 783.99, 1046.5];
     chord.forEach((freq, i) => {
       const startTime = now + i * 0.07;
       const osc = this.ctx!.createOscillator();
