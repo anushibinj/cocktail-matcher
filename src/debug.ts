@@ -102,6 +102,3 @@ export function installDebugHook(game: Phaser.Game): void {
 
   console.info(`[debug] window.__COCKTAIL__ ready; press \` to toggle the Matter overlay`);
 }
-
-// DX002 gate check: deliberate type error, reverted in the next commit.
-export const __ciGateCheck: number = 'not a number';
