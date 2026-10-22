@@ -533,3 +533,535 @@ Rasterize the existing SVG to PNGs in a one-off step and commit them under `publ
 #### Out of scope
 
 Service worker and offline support (PERF004). Redesigning the icon art.
+
+### Usability and game flow (UX)
+
+### [UX001] Show the next drink and give the launcher a clear home
+
+- **Category:** UX
+- **Priority:** P1
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/scenes/GameScene.ts`, `src/game/systems/DrinkSpawner.ts`, `src/game/ui/HUD.ts`, `src/game/config/gameConfig.ts`
+- **Affected experience:** Gameplay
+- **Depends on:** None
+- **Blocks:** ARCH006
+- **Can be combined with:** ARCH004
+
+#### Evidence and current behavior
+
+`DrinkSpawner` already tracks `nextLevel` and exposes an `onNextDrinkChanged` callback (`DrinkSpawner.ts:16, 50-52, 135-137, 209-211`). `GameScene` passes `undefined` for it (`GameScene.ts:110-119`), and `HUD` has no next-drink element (`HUD.ts:67-113` only creates the SCORE and BEST cards). README line 130 claims the HUD has "next drink & evolution cheat-sheet".
+
+The PRD lists the next-drink preview as MVP goal 12 (§3), a spawn-system rule (§7), a HUD element (§18), a Milestone 4 item and a Definition-of-Done line (§28).
+
+The current-drink preview also sits *inside* the table at `SPAWN_Y` with nothing marking it as the launcher. In the midgame screenshot it is indistinguishable from drinks in flight.
+
+#### Problem and impact
+
+Planning one drink ahead is the core skill in drop-and-merge games. Without a preview, every placement is reactive, which flattens the strategy the wider spawn pool (`SPAWN_DISTRIBUTION`, five tiers) was tuned to reward. Players also can't tell at a glance which drink is "theirs".
+
+#### Desired outcome
+
+A clearly labelled "NEXT" preview shows the upcoming drink (sprite and name) and updates the moment the current drink advances. The current drink sits on a visually distinct launcher pad or rail.
+
+#### Implementation guidance
+
+- Wire a HUD method `updateNextDrink(level)` into the spawner's `onNextDrinkChanged`.
+- Place the preview in the unused band between the board bottom (`BOARD.BOTTOM_Y = scaleY(1080)`) and the score cards (`scaleY(1190)`), or between the two score cards.
+- Size it from `DRINKS[level].radius` but cap it at about 64 canvas px so tier 4 (radius 64) fits.
+- Draw a subtle launcher rail at `SPAWN_Y` in `Board` or `AssetGenerator`.
+- Coordinate positions with ARCH004 if it lands first.
+
+#### Acceptance criteria
+
+- [ ] On game start, the NEXT preview shows `nextLevel` and the launcher shows `currentLevel`.
+- [ ] After each launch and cooldown, the launcher shows the previous NEXT drink and NEXT shows a newly rolled drink (verifiable through the DX004 hook).
+- [ ] Restart re-rolls both and the preview updates.
+- [ ] The preview is legible at 360×640: the sprite is at least 32 CSS px and any label meets A11Y005 text sizes.
+- [ ] The preview and launcher pad don't overlap the board, score cards or danger line at 360×640, 390×844, 768×1024 or 1440×900.
+
+#### Validation plan
+
+`pnpm run build`. Screenshots at four viewports. Drop 10 drinks and confirm each launched tier matches the previously shown NEXT tier.
+
+#### Out of scope
+
+A full evolution ladder (UX010). "Hold/swap" mechanics.
+
+### [UX002] Make the overflow danger legible: visible grace countdown, culprit highlight and a stated cause on Game Over
+
+- **Category:** UX
+- **Priority:** P1
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/game/systems/GameOverManager.ts`, `src/game/entities/Board.ts`, `src/game/ui/GameOverModal.ts`, `src/game/systems/AudioManager.ts`, `src/game/scenes/GameScene.ts`
+- **Affected experience:** Gameplay, Completion
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** BUG006
+
+#### Evidence and current behavior
+
+`GameOverManager.update()` (`GameOverManager.ts:18-59`) accumulates `timeInDanger` while any slow drink (`speed < 1.2`) has its bottom below `DANGER_LINE_Y`. It decays the timer at 1.5× while clear and triggers game over at `DANGER_GRACE_PERIOD_MS` (2000). The only feedback is `Board.setDangerState()` (`Board.ts:80-98`): the dashed line flashes and the table rail turns red. There's no sense of *how much* time is left, *which* drink is at fault, or any audio warning before the final `playGameOver()`. The Game Over modal (`GameOverModal.ts:41-94`) says only "GAME OVER" and the score. README line 16 promises "a 2.0s countdown", which doesn't exist.
+
+#### Problem and impact
+
+Because gravity is inverted, the "overflow" direction (down toward the launcher) is counter-intuitive for genre veterans. Players lose suddenly, without understanding why or how close they were. That makes the loss feel unfair and hurts replay motivation (PRD §29 "replayable").
+
+#### Desired outcome
+
+- While any drink is in danger, a countdown shows the remaining grace time (for example a ring or bar along the danger line, filling as time runs out).
+- The offending drink or drinks are highlighted.
+- A soft warning tick plays, respecting the SFX setting.
+- The Game Over card states the cause, for example "A drink stayed past the red line".
+- Recovering (clearing the line) visibly drains the countdown.
+
+#### Implementation guidance
+
+- Expose `getDangerProgress(): number` (`timeInDanger / DANGER_GRACE_PERIOD_MS`) and the list of offending drinks from `GameOverManager`.
+- Render the countdown in `Board` (it already owns the danger visuals). Highlight culprits with a tint pulse or outline on the `Drink` sprite.
+- Add `AudioManager.playDangerTick()`, throttled to about 2–3 per second.
+- Pass a `cause` into `GameOverModal.show()`.
+- Avoid flashing faster than 3 Hz (WCAG 2.3.1). The current 250 ms yoyo is about 2 Hz; keep it at or below that.
+- Respect A11Y006 reduced motion (use steady color instead of pulsing).
+
+#### Acceptance criteria
+
+- [ ] When a drink settles below the line, a visible countdown starts within 1 frame and reaches full exactly when game over triggers (±1 frame).
+- [ ] Clearing the line visibly drains the countdown at the same 1.5× rate the logic uses.
+- [ ] The offending drink is visually marked. The mark is removed when it leaves the danger zone or merges.
+- [ ] The warning tick plays only when SFX is on and stops when danger clears.
+- [ ] The Game Over card shows a cause line. The layout still fits at 360×640.
+- [ ] No flashing exceeds 3 flashes per second.
+
+#### Validation plan
+
+`pnpm run build`. Manual: stack at one x until danger triggers, then recover once and lose once. Screenshot at 390×844 mid-countdown. TEST002 can assert that the countdown object appears through the DX004 hook.
+
+#### Out of scope
+
+Retuning `DANGER_LINE_Y` or the grace period. Screen-reader announcements of danger (A11Y003 consumes the hook added here).
+
+### [UX003] Only start aiming from the play area, and let players cancel a drop
+
+- **Category:** UX
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** Medium
+- **Affected files:** `src/game/systems/DrinkSpawner.ts`, `src/game/config/gameConfig.ts`
+- **Affected experience:** Gameplay
+- **Depends on:** BUG003
+- **Blocks:** None
+- **Can be combined with:** A11Y001, BUG003
+
+#### Evidence and current behavior
+
+After BUG003, buttons won't launch drinks, but *any other* press anywhere on the canvas still aims and launches. That includes the top canopy, the order tickets (non-interactive containers in `OrderManager.renderOrderTicket`), the score cards and the beach margins (`DrinkSpawner.ts:57-73`). There is no way to abort a drop: every `pointerup` launches. Whether releasing outside the canvas launches (Phaser emits `pointerupoutside` separately from `pointerup`) needs runtime validation.
+
+#### Problem and impact
+
+Touch players often rest a thumb or tap near the HUD or tickets to read them, which commits a drink they didn't mean to place. Accidental launches are the most common frustration in this genre.
+
+#### Desired outcome
+
+- Aiming begins only from a press within the board's horizontal span, below the ticket and canopy band (for example `y > BOARD.TOP`).
+- Dragging the pointer clearly away (for example below the board bottom or off the canvas) and releasing cancels with a visible "cancel" state on the preview.
+- Desktop hover-aiming keeps working.
+
+#### Implementation guidance
+
+Add an `AIM_ZONE` rectangle to `GAME_CONFIG` and check it in the armed-pointer logic introduced by BUG003. Show the cancel state by dimming the preview and hiding the guidance line. Handle `pointerupoutside` explicitly as a cancel.
+
+#### Acceptance criteria
+
+- [ ] Tapping on order tickets, the canopy or score cards launches nothing.
+- [ ] Press in the board, drag below the board bottom, release: no launch, and the preview returns to ready.
+- [ ] Press in the board, release in the board: launches at the release x (clamped as today).
+- [ ] Mouse hover still moves the aim on desktop. Releasing outside the canvas cancels.
+
+#### Validation plan
+
+Manual at 390×844 (touch emulation) and 1440×900 (mouse). TEST002 cases for the ticket tap and the cancel drag. `pnpm run build`.
+
+#### Out of scope
+
+Keyboard aiming (A11Y001). Changes to clamping math.
+
+### [UX004] Add a skippable first-run tutorial that teaches the upward launch, merging and To-Go orders
+
+- **Category:** UX
+- **Priority:** P1
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/game/scenes/GameScene.ts`, `src/game/ui/` (new tutorial overlay), `src/storage/SaveManager.ts`, `src/types/game.ts`, `src/game/ui/PauseModal.ts`
+- **Affected experience:** Onboarding
+- **Depends on:** CONTENT001
+- **Blocks:** None
+- **Can be combined with:** CONTENT001
+
+#### Evidence and current behavior
+
+The only instructions are:
+- a single 16 px line on the menu, "Drop cocktails • Match pairs • Don't overflow!" (`MenuScene.ts:128`);
+- three lines inside the pause modal (`PauseModal.ts:74`), which first-time players will never open.
+
+Nothing explains that drinks fly *upward*, that the danger line is near the *launcher*, or what the To-Go tickets do. They silently remove matching drinks (`OrderManager.checkForMatchingOrders`, lines 164-187), which looks like a bug to a newcomer: in the scripted runtime session, drops of tiers 2–4 vanished into tickets. `SaveData.totalGamesPlayed` exists but drives nothing.
+
+#### Problem and impact
+
+The PRD's bar is "understandable without instructions" and "open on her phone and immediately enjoy" (§5, §29). The inverted layout breaks genre expectations, so a first-time player is likely to misread the goal and the loss condition.
+
+#### Desired outcome
+
+- On the first game only, a short coach-mark sequence teaches three things: (1) drag and release to launch upward; (2) match two identical drinks to mix the next one; (3) To-Go tickets take a matching drink for bonus points, and drinks must stay above the red line.
+- Each step advances on the relevant action (or a "Next" button) and can be skipped at any point.
+- It never shows again unless reopened from the pause menu ("How to play").
+
+#### Implementation guidance
+
+- Add `tutorialCompleted: boolean` to `SaveData` (default `false`; `SaveManager.load()` already merges defaults, so old saves stay compatible).
+- Implement a `TutorialOverlay` in `src/game/ui/` driven by callbacks from `DrinkSpawner` (first launch), `MergeManager` (first merge) and `OrderManager` (first order).
+- Keep the physics running so the tutorial is "learn by doing", but suppress game over during step 1.
+- Use the copy from CONTENT001. Reuse ARCH001 buttons if they exist; don't block on them.
+
+#### Acceptance criteria
+
+- [ ] With cleared storage, starting a game shows step 1. Launching a drink advances to step 2, the first merge to step 3, and finishing or skipping ends the tutorial.
+- [ ] "Skip" is available on every step and ends the tutorial immediately.
+- [ ] After completion, a reload doesn't show it again. "How to play" in the pause menu replays it.
+- [ ] Coach marks never cover the launcher or the drink being aimed at 360×640.
+- [ ] Text meets A11Y005 sizes. The overlay can be dismissed with the keyboard (Esc/Enter).
+- [ ] No game over can occur during step 1.
+
+#### Validation plan
+
+Manual with cleared `localStorage` at 390×844 and 1440×900, then reload to confirm persistence. TEST002 case "first-run tutorial shows once". `pnpm run build`.
+
+#### Out of scope
+
+Rewriting the copy itself (CONTENT001). The evolution ladder (UX010).
+
+### [UX005] Stop To-Go orders from auto-collecting freshly launched drinks
+
+- **Category:** UX
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/systems/OrderManager.ts`, `src/game/systems/MergeManager.ts`, `src/game/entities/Drink.ts`, `src/game/config/gameConfig.ts`
+- **Affected experience:** Gameplay
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** CONTENT001
+
+#### Evidence and current behavior
+
+Orders request tiers 2–6 (`OrderManager.getRandomOrderLevel()`, lines 57-62; the comment wrongly says "2 through 7"). Spawns are drawn from tiers 0–4 (`GAME_CONFIG.SPAWN_DISTRIBUTION`, `gameConfig.ts:91-97`). `checkForMatchingOrders()` accepts *any* drink of the target tier with `y < scaleY(800)`, including one that was just launched and is still flying.
+
+So 45% of spawns (tiers 2, 3 and 4 by weight) can satisfy an order directly. The reward is `baseScore * 2 + 100`, for example 420 points for a launched tier-3 drink, more than four tier-3 merges. Observed at runtime: launched drinks repeatedly vanished into tickets moments after release. The selection is also arbitrary (`Array.find` picks the first in the list), so the order can steal a drink the player was positioning for a merge.
+
+#### Problem and impact
+
+Orders reward luck rather than skill, undercut the merge economy, and make the player's own drinks disappear unexpectedly.
+
+#### Desired outcome
+
+Orders are fulfilled only by drinks the player *made* through merging, after they have settled. Requested tiers start above the spawnable range, or the reward accounts for the effort.
+
+#### Implementation guidance
+
+- Add `createdByMerge: boolean` on `Drink`, set in `MergeManager.handleDrinkCollision` (line 120).
+- In `checkForMatchingOrders`, require `createdByMerge` plus a low-speed check (reuse the 1.2 threshold from `GameOverManager`).
+- Derive the minimum order tier from the spawn table (`max(SPAWN_DISTRIBUTION.level) + 1` = 5) or keep 2–6 with merge-only matching, whichever playtests better. Make it configurable in `GAME_CONFIG.ORDERS`.
+- Fix the comment.
+
+#### Acceptance criteria
+
+- [ ] A launched (non-merged) drink never fulfils an order, even when its tier matches.
+- [ ] A merged drink of the requested tier fulfils it only after its speed drops below the threshold.
+- [ ] Order tiers and rewards come from `GAME_CONFIG`, not literals in `OrderManager`.
+- [ ] Existing ticket visuals and checkout animation are unchanged.
+
+#### Validation plan
+
+Manual: use the DX004 hook to launch drinks that match an order and confirm they are not taken. Merge to the target tier and confirm it is. Play 3 full games to sanity-check pacing. TEST001 unit test for the matching predicate. `pnpm run build`.
+
+#### Out of scope
+
+New order types or timers on orders.
+
+### [UX006] Auto-pause when the tab or app is hidden, and stop background music
+
+- **Category:** UX
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** Medium
+- **Affected files:** `src/game/scenes/GameScene.ts`, `src/game/systems/AudioManager.ts`
+- **Affected experience:** Gameplay
+- **Depends on:** BUG001
+- **Blocks:** None
+- **Can be combined with:** BUG001, UX011
+
+#### Evidence and current behavior
+
+There is no `visibilitychange`, `blur` or Phaser `HIDDEN`/`BLUR` handling anywhere in `src/`. Phaser halts its own loop while the document is hidden, but BGM plays through a standalone `HTMLAudioElement` (`AudioManager.ts:68-76, 396-405`) that the game never pauses. When the player returns, play resumes mid-action with no pause screen. The music behavior is confirmed by code inspection. How browsers and OSes throttle hidden audio needs runtime validation on mobile.
+
+#### Problem and impact
+
+Answering a call or switching apps can leave music playing, which is a common annoyance and an accessibility issue for audio control. Coming back straight into a live board, possibly mid-danger countdown, can cost the run.
+
+#### Desired outcome
+
+Hiding the page or app while playing opens the pause modal and pauses BGM. Returning keeps the game paused until the player chooses Resume. BGM resumes only if music is enabled.
+
+#### Implementation guidance
+
+Listen to `this.game.events.on(Phaser.Core.Events.HIDDEN)`, or to `document.visibilitychange`, in `GameScene`. If the game is playing, call `handlePause()`. Add `AudioManager.suspendForBackground()`/`resumeFromBackground()` that pause the BGM element and `ctx.suspend()`/`resume()`. Remove the listener on scene shutdown.
+
+#### Acceptance criteria
+
+- [ ] Switching tabs during play and returning shows the pause modal, and the board is frozen (BUG001).
+- [ ] BGM stops within 250 ms of hiding and doesn't play while hidden.
+- [ ] Returning to the menu or game-over screen while hidden doesn't open a pause modal there.
+- [ ] Music stays off after returning if it was disabled.
+- [ ] No duplicate listeners after 3 restarts or menu round trips.
+
+#### Validation plan
+
+Manual tab switching in desktop Chrome. Emulate `document.visibilityState` in Playwright with `page.evaluate` and a dispatched event. On a real phone: app switch and lock screen (needs runtime validation). `pnpm run build`.
+
+#### Out of scope
+
+Saving and restoring a game in progress across reloads.
+
+### [UX007] Handle rotation and resize, and guide landscape phone users back to portrait
+
+- **Category:** UX
+- **Priority:** P2
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/game/config/gameConfig.ts`, `src/main.ts`, `index.html`, `src/game/scenes/*.ts`
+- **Affected experience:** Responsive
+- **Depends on:** ARCH004
+- **Blocks:** None
+- **Can be combined with:** UX008
+
+#### Evidence and current behavior
+
+`computeCanvasHeight()` runs once, when the module is imported (`gameConfig.ts:22-35`). All board, spawn and danger coordinates are derived from that height at load. Loading in landscape and then rotating to portrait leaves the 1280 reference height and brings back the letterboxing the stretch was meant to remove. The reverse leaves a tall canvas in a short viewport.
+
+In landscape on a phone (844×390), the whole game renders at **219×390 CSS px** (measured at runtime). Drinks and buttons become unusably small, and nothing tells the player to rotate. `manifest.webmanifest` declares `"orientation": "portrait"`, but that only applies to an installed PWA.
+
+#### Problem and impact
+
+Phones are often picked up in landscape, and tablets rotate freely. The game either looks broken or becomes unplayable until reload, with no explanation.
+
+#### Desired outcome
+
+- On touch devices in landscape where the canvas would be narrower than about 320 CSS px, a friendly "Rotate your phone to play" overlay appears and gameplay auto-pauses.
+- When the aspect ratio changes materially while on the menu, the canvas height is recomputed (or the game reloaded cleanly).
+- During a run, a resize never breaks input mapping.
+
+#### Implementation guidance
+
+- Add a CSS/DOM overlay in `index.html` shown with `@media (orientation: landscape) and (pointer: coarse) and (max-height: 500px)`. Pair it with a `matchMedia` listener that calls the pause path.
+- For recomputation, the least risky route is to rebuild the `Phaser.Game` (`game.destroy(true)` → new game) when the menu is showing and the aspect changes by more than 10%. Geometry is baked into Matter bodies, so avoid live re-layout mid-run.
+- ARCH004 centralises the derived geometry first so it can be recomputed in one place.
+
+#### Acceptance criteria
+
+- [ ] At 844×390 with touch, a rotate overlay covers the game and gameplay is paused. Rotating back hides it, and play remains paused until Resume.
+- [ ] Desktop windows in landscape are not blocked (pointer: fine).
+- [ ] Rotating on the menu from landscape to portrait yields a canvas that fills the portrait viewport with no letterbox bars (matching a fresh portrait load).
+- [ ] Mid-run resize keeps aim aligned with the pointer and never throws.
+- [ ] No regression of BUG005 centering.
+
+#### Validation plan
+
+Playwright: `page.setViewportSize` portrait → landscape → portrait on the menu and in game, with screenshots. Real-device rotation on iOS and Android (needs runtime validation). `pnpm run build`.
+
+#### Out of scope
+
+A dedicated landscape layout. Safe-area padding (UX008).
+
+### [UX008] Keep HUD controls clear of iPhone notches and status bars
+
+- **Category:** UX
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** Medium
+- **Affected files:** `index.html`, `src/game/ui/HUD.ts`, `src/game/scenes/MenuScene.ts`
+- **Affected experience:** Responsive, Accessibility
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** UX007, A11Y004
+
+#### Evidence and current behavior
+
+`index.html` opts into edge-to-edge drawing (`viewport-fit=cover`, line 5) and a translucent status bar in standalone mode (`apple-mobile-web-app-status-bar-style: black-translucent`, line 10). Nothing applies `env(safe-area-inset-*)`. The HUD buttons sit at canvas y=48 (`HUD.ts:26-56`) and the menu toggles at y=60 (`MenuScene.ts:144-160`). At 390×844 that is about 26–33 CSS px from the top edge, inside the iPhone status-bar and Dynamic Island area (about 47–59 pt) when launched from the home screen. Confirmed by code inspection and arithmetic; the on-device overlap needs runtime validation.
+
+#### Problem and impact
+
+Pause, sound and music controls may be partly hidden or hard to tap on modern iPhones in PWA mode.
+
+#### Desired outcome
+
+Interactive controls and critical text never fall under device cutouts or system bars, in browser or standalone mode.
+
+#### Implementation guidance
+
+Pad `#game-container` with `padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)`, so Phaser's FIT fits within the safe area. Let the page background fill the insets. Check `computeCanvasHeight()` against the *padded* container size rather than `window.innerHeight` (gameConfig line 27).
+
+#### Acceptance criteria
+
+- [ ] In iOS standalone mode (or the Safari simulator) on a notched device, no button or text overlaps the status bar or home indicator.
+- [ ] Non-notched devices and desktop are unchanged (insets resolve to 0).
+- [ ] Canvas height calculation uses the safe-area-adjusted height.
+
+#### Validation plan
+
+iOS Simulator or a real iPhone with "Add to Home Screen" (needs runtime validation). Desktop regression at 390×844 and 1440×900. `pnpm run build`.
+
+#### Out of scope
+
+Button sizes (A11Y004).
+
+### [UX009] Confirm before Restart or Main Menu throws away a run
+
+- **Category:** UX
+- **Priority:** P3
+- **Effort:** S
+- **Confidence:** High
+- **Affected files:** `src/game/ui/PauseModal.ts`
+- **Affected experience:** Gameplay, Replay
+- **Depends on:** ARCH001
+- **Blocks:** None
+- **Can be combined with:** A11Y002
+
+#### Evidence and current behavior
+
+In the pause modal, "🔄 Restart Game" and "Main Menu" act immediately on `pointerdown` (`PauseModal.ts:130-148`). They sit 50–70 canvas px below Resume, and the run's score is lost with no confirmation. "Main Menu" also skips `SaveManager.recordGamePlayed`, so the abandoned run isn't counted.
+
+#### Problem and impact
+
+A slightly mis-aimed tap aimed at Resume can wipe a long run. Small tap targets (A11Y004) make this more likely on phones.
+
+#### Desired outcome
+
+Restart and Main Menu from the pause modal ask for a one-step confirmation, for example the button turns into "Tap again to restart" for 3 s, or a small inline confirm appears. The Game Over modal needs no confirmation.
+
+#### Implementation guidance
+
+Implement as a reusable "confirm" state on the ARCH001 button component. Decide whether an abandoned run should count toward `totalGamesPlayed` and record it consistently.
+
+#### Acceptance criteria
+
+- [ ] A single tap on Restart or Main Menu in the pause modal doesn't leave the run. A second confirming tap within the window does.
+- [ ] The confirm state times out and reverts after 3 s.
+- [ ] Keyboard: Enter on a focused Restart shows the confirm, and a second Enter performs it (with A11Y002).
+- [ ] The Game Over modal buttons act immediately as today.
+
+#### Validation plan
+
+Manual at 390×844 and 1440×900. A TEST002 case for restart confirmation. `pnpm run build`.
+
+#### Out of scope
+
+Undo after restart.
+
+### [UX010] Celebrate progression: new-tier unlocks, an evolution ladder, max-tier merges and run stats
+
+- **Category:** UX
+- **Priority:** P2
+- **Effort:** M
+- **Confidence:** High
+- **Affected files:** `src/game/systems/MergeManager.ts`, `src/game/scenes/GameScene.ts`, `src/storage/SaveManager.ts`, `src/game/ui/HUD.ts`, `src/game/ui/PauseModal.ts`, `src/game/ui/GameOverModal.ts`, `src/game/scenes/MenuScene.ts`
+- **Affected experience:** Gameplay, Completion, Replay
+- **Depends on:** None
+- **Blocks:** None
+- **Can be combined with:** UI004
+
+#### Evidence and current behavior
+
+- `SaveManager` stores `highestDrinkUnlocked` (updated only at game over, `SaveManager.ts:87-93`). `getHighestDrinkUnlocked()` (line 95) is never called, so the value is never shown.
+- `GameScene.highestDrinkThisGame` is tracked (lines 27, 59-61, 115-117) only to feed that save.
+- There is no evolution chart anywhere, despite README line 130.
+- When two tier-11 "Ultimate Cocktail" drinks touch, `MergeManager.handleDrinkCollision` simply returns (lines 85-87), with no reward or feedback.
+- Merges into new tiers get the same effect as any other, apart from screen shake scaling at tier 5 and above (lines 184-187) and a second note at tier 6 and above in `AudioManager.playMerge`.
+- The Game Over card shows only score and best.
+
+#### Problem and impact
+
+The 12-tier ladder is the game's long-term goal, but players can't see what comes next, can't tell when they've reached something new, and get no payoff for reaching the top. PRD §15 asks for "a stronger effect for major milestones".
+
+#### Desired outcome
+
+- **First-time tier.** A brief banner, such as "New drink unlocked: Blue Lagoon!", with a stronger burst when a merge creates a tier above `highestDrinkUnlocked`. The record updates immediately, not just at game over.
+- **Evolution ladder.** A ladder of all 12 tiers, with locked tiers shown as silhouettes, is viewable from the pause modal and the menu.
+- **Max-tier pair.** Two Ultimate Cocktails touching give a defined payoff (for example both clear with a large bonus). This is a design decision; record the choice in the PRD.
+- **Run stats.** The Game Over card shows the highest drink reached this run.
+
+#### Implementation guidance
+
+- Add an `onTierReached(level, isFirstEver)` callback from `MergeManager` to `GameScene`. `SaveManager.recordTierReached(level)` saves immediately.
+- Render the ladder with the existing `drink_N` textures, scaled small, with a dark tint for locked tiers.
+- Keep the banner short (≤ 1.5 s) and non-blocking. Respect A11Y006.
+- Coordinate HUD space with UX001.
+
+#### Acceptance criteria
+
+- [ ] Creating a tier for the first time ever shows the unlock banner once. Repeats in later runs don't.
+- [ ] `highestDrinkUnlocked` updates the moment a new tier is reached (survives a reload mid-run).
+- [ ] The ladder shows all 12 tiers, with unreached tiers locked, and is reachable from pause and menu by touch and keyboard.
+- [ ] Two tier-11 drinks colliding trigger the chosen payoff exactly once (with the guards from MergeManager's existing lock).
+- [ ] The Game Over card shows the highest tier reached this run (name plus thumbnail) and still fits at 360×640.
+
+#### Validation plan
+
+Spawn high tiers with the DX004 hook. Manual run-through with cleared storage. TEST001 unit test for the unlock bookkeeping in `SaveManager`. `pnpm run build`.
+
+#### Out of scope
+
+Achievements, leaderboards (PRD §4 non-goals). Menu visual redesign (UI004).
+
+### [UX011] Route background music through Web Audio so volume balance and mute work on iOS
+
+- **Category:** UX
+- **Priority:** P2
+- **Effort:** S
+- **Confidence:** Medium
+- **Affected files:** `src/game/systems/AudioManager.ts`
+- **Affected experience:** Gameplay, Accessibility
+- **Depends on:** None
+- **Blocks:** ARCH006
+- **Can be combined with:** PERF001, UX006
+
+#### Evidence and current behavior
+
+BGM plays through an `HTMLAudioElement` whose level is set with `bgmAudio.volume = 0.35` (`AudioManager.ts:72, 101, 400`). A `musicGain` GainNode is created and updated (lines 38-40, 103-105), but nothing is ever connected to it. iOS Safari treats `HTMLMediaElement.volume` as read-only (always 1.0). On iPhone and iPad, music is therefore likely to play at full volume, well above SFX (`sfxGain` 0.75 × per-sound gains of 0.18–0.45). This is platform-documented behavior inferred from the code and needs on-device validation.
+
+#### Problem and impact
+
+On a primary target platform (PRD §1, iPhone/iPad), loud music can drown out the gameplay sounds that carry feedback, and the intended mix is lost.
+
+#### Desired outcome
+
+Music level is controlled by `musicGain` on every platform. The music/SFX balance sounds the same on iOS and desktop, and toggling music off silences it immediately.
+
+#### Implementation guidance
+
+Connect the element via `ctx.createMediaElementSource(bgmAudio).connect(musicGain)` and leave `.volume` at 1. Alternatively, decode the file into an `AudioBuffer` and loop it with an `AudioBufferSourceNode`, which also gives gapless loops. Ensure the `AudioContext` is resumed in the existing `unlock` handler before playing. Coordinate with PERF001, which lazy-loads and compresses the file.
+
+#### Acceptance criteria
+
+- [ ] On desktop Chrome, music level is unchanged by ear compared with today (0.35 relative).
+- [ ] On iOS Safari, music plays noticeably quieter than SFX peaks, matching desktop (needs device validation).
+- [ ] The music toggle mutes and unmutes within 100 ms on all platforms.
+- [ ] No `.volume` writes remain in `AudioManager`.
+
+#### Validation plan
+
+Manual listening on desktop Chrome and Firefox and on an iPhone or iPad (needs runtime validation). `pnpm run build`.
+
+#### Out of scope
+
+Separate volume sliders (could follow). Replacing the BGM track.
