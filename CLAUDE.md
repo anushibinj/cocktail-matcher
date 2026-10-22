@@ -10,7 +10,7 @@ The full design spec (mechanics, tuning targets, UX details) lives in `cocktail_
 
 ## Commands
 
-The repo currently ships `package-lock.json` (npm); use `pnpm` for interactive development per user preference, but note CI (`.github/workflows/firebase-hosting-*.yml`) invokes `npm ci` / `npm run build` directly, so don't remove `package-lock.json` without updating those workflows.
+The repo uses pnpm only: `pnpm-lock.yaml` is the single lockfile and `package.json` pins the version via `packageManager` (Corepack or `pnpm/action-setup` pick it up). Don't add a `package-lock.json`.
 
 ```bash
 pnpm install        # install dependencies
@@ -28,7 +28,9 @@ There is no test suite. Before committing, run `pnpm run format`, `pnpm run lint
 
 **Debug/test hook** (`src/debug.ts`): in `pnpm run dev`, or any build opened with `?debug=1`, `window.__COCKTAIL__` exposes `game`, `getScene()`, `getState()`, `spawnDrink(level, x, y)`, `setScore(n)`, `forceGameOver()`, `setSeed(n | null)` (seeds the spawner/order RNG in `systems/spawnPicker.ts` and restarts a running game) and `toggleMatterDebug()` (also the `` ` `` key). Production without the flag never loads it. Keep it test-only: no in-game developer UI.
 
-Deployment is `firebase deploy --only hosting` after `pnpm run build` (see `firebase.json` / `.firebaserc`); the Firebase project is `fastorial` / site `fastorial-70d16`. GitHub Actions auto-deploy on merge/PR using npm.
+Deployment is `firebase deploy --only hosting` after `pnpm run build` (see `firebase.json` / `.firebaserc`); the Firebase project is `fastorial` / site `fastorial-70d16`. GitHub Actions auto-deploy on merge/PR using pnpm.
+
+**CI** (`.github/workflows/`): `ci.yml` runs on every `pull_request` (fork PRs included; read-only token, no secrets) and on pushes to `master`. Its `ci` job runs `pnpm install --frozen-lockfile`, `typecheck`, `lint`, `format:check`, `test` (via `--if-present`) and `build`; a separate `e2e` job installs Playwright Chromium and runs `test:e2e` when `playwright.config.ts` exists. The two `firebase-hosting-*.yml` workflows build with the same pnpm steps and deploy (PR preview channel for same-repo PRs, `live` on merge). Every `uses:` is pinned to a full commit SHA with a `# vX.Y.Z` comment, and every workflow declares minimal `permissions:`; keep both when adding steps. Dependabot (`.github/dependabot.yml`) bumps the pins and npm dependencies weekly.
 
 ## Architecture
 
