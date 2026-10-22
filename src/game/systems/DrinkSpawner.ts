@@ -13,6 +13,10 @@ export class DrinkSpawner {
   private isCoolingDown: boolean = false;
   private isEnabled: boolean = true;
   private cooldownTimer: Phaser.Time.TimerEvent | null = null;
+  // Id of the pointer whose press started an aiming gesture, or null. Only
+  // that pointer's release launches, so taps on buttons (which never arm)
+  // and extra fingers during a multi-touch never fire a drink.
+  private armedPointerId: number | null = null;
   private currentTargetX: number = GAME_CONFIG.BOARD.CENTER_X;
   private onNextDrinkChanged?: (level: number) => void;
   private onDrinkDropped?: (drink: Drink) => void;
@@ -58,18 +62,35 @@ export class DrinkSpawner {
   private setupInput(): void {
     this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!this.isEnabled) return;
+      if (this.armedPointerId !== null && pointer.id !== this.armedPointerId) return;
       this.handlePointerMove(pointer.x);
     });
 
-    this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (!this.isEnabled) return;
-      this.handlePointerMove(pointer.x);
-      this.drawGuidanceLine();
-    });
+    this.scene.input.on(
+      'pointerdown',
+      (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+        // Phaser emits a button's own pointerdown before this scene-wide one,
+        // so a button that just re-enabled the spawner (Resume, Play Again)
+        // still shows up in currentlyOver here and must not arm a launch.
+        if (!this.isEnabled || this.armedPointerId !== null || currentlyOver.length > 0) return;
+        this.armedPointerId = pointer.id;
+        this.handlePointerMove(pointer.x);
+        this.drawGuidanceLine();
+      }
+    );
 
-    this.scene.input.on('pointerup', () => {
+    this.scene.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.id !== this.armedPointerId) return;
+      this.armedPointerId = null;
       if (!this.isEnabled) return;
       this.launchCurrentDrink();
+    });
+
+    // Releasing off-canvas never launched before; just drop the gesture.
+    this.scene.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.id === this.armedPointerId) {
+        this.armedPointerId = null;
+      }
     });
   }
 
@@ -203,6 +224,7 @@ export class DrinkSpawner {
   public setEnabled(enabled: boolean): void {
     this.isEnabled = enabled;
     if (!enabled) {
+      this.armedPointerId = null;
       this.guidanceGfx.clear();
     } else {
       this.drawGuidanceLine();
@@ -210,6 +232,7 @@ export class DrinkSpawner {
   }
 
   public reset(): void {
+    this.armedPointerId = null;
     // A cooldown still pending from the previous game would otherwise fire
     // after the restart and advance the freshly rolled queue a second time.
     this.cancelCooldown();
