@@ -222,6 +222,14 @@ export class GameScene extends Phaser.Scene {
     this.gameOverManager.reset();
     this.spawner.reset();
     this.hud.updateScore(0, this.scoreManager.getBestScore());
+    // Finish the old game's frozen FX (score popups, merge pop-outs, rings)
+    // instead of resuming them over the new board. Skip tweens that a reset
+    // above already removed: complete() would still fire their onComplete,
+    // e.g. a cancelled checkout's reward.
+    this.frozenTweens.forEach(t => {
+      if (this.tweens.has(t) && t.isActive()) t.complete();
+    });
+    this.frozenTweens = [];
     this.unfreezeGameplay();
   }
 
