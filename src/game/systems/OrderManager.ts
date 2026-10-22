@@ -4,6 +4,7 @@ import { ScoreManager } from './ScoreManager';
 import { AudioManager } from './AudioManager';
 import { getDrinkByLevel } from '../config/drinks';
 import { GAME_CONFIG } from '../config/gameConfig';
+import { gameRandom, pickIntInclusive } from './spawnPicker';
 
 // Y-coordinates below are tuned against the original 1280-tall reference
 // canvas; rescale so ticket placement and the "on the table" check keep
@@ -58,7 +59,7 @@ export class OrderManager {
     // Generate orders for tiers 2 through 7 (Pineapple Cooler to Blue Lagoon)
     const minLevel = 2;
     const maxLevel = 6;
-    return Phaser.Math.Between(minLevel, maxLevel);
+    return pickIntInclusive(minLevel, maxLevel, gameRandom);
   }
 
   public spawnNewOrder(slotIndex: number): void {
