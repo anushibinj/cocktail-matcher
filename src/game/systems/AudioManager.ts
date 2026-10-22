@@ -433,13 +433,18 @@ export class AudioManager {
       this.bgmAudio.pause();
     }
     if (this.ctx && this.ctx.state === 'running') {
-      this.ctx.suspend();
+      this.ctx.suspend().catch(() => {});
     }
   }
 
   public resumeFromBackground(): void {
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    // Resume unless closed, not just when 'suspended': iOS WebKit can come
+    // back 'interrupted' and won't auto-resume a context the page suspended
+    // itself, and in Firefox a quick hide/show can arrive while suspend()
+    // is still pending (state still 'running'); resume() queues behind it.
+    // Missing either would leave SFX silent for the rest of the session.
+    if (this.ctx && this.ctx.state !== 'closed') {
+      this.ctx.resume().catch(() => {});
     }
     if (this.isBgmPlaying && SaveManager.getInstance().getMusicEnabled() && this.bgmAudio) {
       this.bgmAudio.play().catch((err) => {
