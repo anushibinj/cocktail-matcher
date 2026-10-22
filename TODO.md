@@ -94,6 +94,23 @@ The smallest coherent set that noticeably improves the game without a redesign:
 
 BUG002, BUG003 and BUG001 touch `DrinkSpawner`/`GameScene` and should land first, in that order. BUG005 and BUG006 are independent and can run in parallel with them. UX001 and UX002 come next, and A11Y004/A11Y005 last, so the resizing pass also covers the new HUD elements (execution rows 1–6 and 17–21). For this milestone, do A11Y004 on its own; its optional pairing with UI001 (row 20) can wait for ARCH001.
 
+## Progress
+
+| Wave | Execution rows | TODO IDs | Status |
+|---|---|---|---|
+| 1 | 1–9 | BUG001, BUG002, BUG003, UX006, BUG004, BUG005, BUG009, A11Y007, BUG008, BUG006, BUG007, PERF005, SEC001, DX004 | ✅ Merged: [#4](https://github.com/anushibinj/cocktail-matcher/pull/4), [#5](https://github.com/anushibinj/cocktail-matcher/pull/5), [#6](https://github.com/anushibinj/cocktail-matcher/pull/6), [#7](https://github.com/anushibinj/cocktail-matcher/pull/7), [#8](https://github.com/anushibinj/cocktail-matcher/pull/8), [#9](https://github.com/anushibinj/cocktail-matcher/pull/9), [#10](https://github.com/anushibinj/cocktail-matcher/pull/10) |
+| 2 | 10–16 | ARCH002, DX001, DX002, SEC003, ARCH001, ARCH004, TEST001, TEST002 | 🚧 In progress |
+| 3–5 | 17–40 | Remaining items | ⏳ Not started |
+
+DX003 is partly done: #7 moved the asset READMEs out of `public/`, so `dist/` no longer ships them. The rest of DX003 (main README accuracy) is still open.
+
+**Wave-1 items still needing real-device validation** (they could only be tested in headless Chromium):
+- iOS "Add to Home Screen" icon and the Android adaptive (maskable) icon (BUG009).
+- Pinch-zoom on the letterbox margins on Android, and no double-tap zoom during rapid launches on iOS (A11Y007).
+- App switch / lock screen pausing the game and BGM, and SFX recovering after an iOS `'interrupted'` AudioContext (UX006).
+- No GC hitches during merge cascades on a mid-range phone (PERF005).
+- `/` serving the game and missing assets returning 404 on the live Firebase site (BUG008; confirmed on a preview channel).
+
 ## Detailed TODOs
 
 ### Bugs (BUG)
@@ -101,6 +118,7 @@ BUG002, BUG003 and BUG001 touch `DrinkSpawner`/`GameScene` and should land first
 ### [BUG001] Pause and game over do not freeze physics, merges, scoring or order checkout
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#10](https://github.com/anushibinj/cocktail-matcher/pull/10) (wave 1)
 - **Priority:** P1
 - **Effort:** M
 - **Confidence:** High
@@ -153,6 +171,7 @@ Auto-pause on tab or app switch (UX006). Restructuring all game state into a pha
 ### [BUG002] Pausing during the drop cooldown permanently disables launching (soft-lock)
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#10](https://github.com/anushibinj/cocktail-matcher/pull/10) (wave 1)
 - **Priority:** P0
 - **Effort:** XS
 - **Confidence:** High
@@ -203,6 +222,7 @@ Changing the cooldown length. Keyboard launching (A11Y001).
 ### [BUG003] Tapping UI controls also launches a drink (HUD toggles, Resume, Play Again, Restart)
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#10](https://github.com/anushibinj/cocktail-matcher/pull/10) (wave 1)
 - **Priority:** P1
 - **Effort:** S
 - **Confidence:** High
@@ -253,6 +273,7 @@ Restricting the aiming area and adding a cancel gesture (UX003). Keyboard input 
 ### [BUG004] Restart during an order checkout carries the old order's reward and ticket into the new game
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#10](https://github.com/anushibinj/cocktail-matcher/pull/10) (wave 1)
 - **Priority:** P2
 - **Effort:** S
 - **Confidence:** Medium
@@ -306,6 +327,7 @@ Rebalancing orders (UX005).
 ### [BUG005] The game canvas is off-center whenever it is letterboxed horizontally (tablet, desktop, landscape)
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#6](https://github.com/anushibinj/cocktail-matcher/pull/6) (wave 1)
 - **Priority:** P2
 - **Effort:** XS
 - **Confidence:** High
@@ -357,6 +379,7 @@ Recomputing canvas height on resize or rotation (UX007).
 ### [BUG006] "NEW BEST SCORE!" badge renders behind the Game Over card, and a tie counts as a new best
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#4](https://github.com/anushibinj/cocktail-matcher/pull/4) (wave 1)
 - **Priority:** P2
 - **Effort:** XS
 - **Confidence:** High
@@ -402,6 +425,7 @@ Run statistics on the Game Over screen (UX010) and the cause of the loss (UX002)
 ### [BUG007] Merge and checkout particles disappear mid-flight
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#9](https://github.com/anushibinj/cocktail-matcher/pull/9) (wave 1)
 - **Priority:** P3
 - **Effort:** XS
 - **Confidence:** High
@@ -444,6 +468,7 @@ Redesigning merge FX. Reduced-motion variants (A11Y006).
 ### [BUG008] Every load logs 12 console errors and makes 13 wasted requests probing optional assets
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#7](https://github.com/anushibinj/cocktail-matcher/pull/7) (wave 1)
 - **Priority:** P2
 - **Effort:** S
 - **Confidence:** High
@@ -492,6 +517,7 @@ Producing real artwork or audio. Service-worker caching (PERF004).
 ### [BUG009] iOS home-screen icon points to a missing PNG, and the manifest ships only SVG icons marked "any maskable"
 
 - **Category:** BUG
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#6](https://github.com/anushibinj/cocktail-matcher/pull/6) (wave 1)
 - **Priority:** P2
 - **Effort:** XS
 - **Confidence:** High
@@ -792,6 +818,7 @@ New order types or timers on orders.
 ### [UX006] Auto-pause when the tab or app is hidden, and stop background music
 
 - **Category:** UX
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#10](https://github.com/anushibinj/cocktail-matcher/pull/10) (wave 1)
 - **Priority:** P2
 - **Effort:** S
 - **Confidence:** Medium
@@ -1586,6 +1613,7 @@ Particle density options.
 ### [A11Y007] Stop disabling browser zoom globally
 
 - **Category:** A11Y
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#6](https://github.com/anushibinj/cocktail-matcher/pull/6) (wave 1)
 - **Priority:** P3
 - **Effort:** XS
 - **Confidence:** Medium
@@ -1802,6 +1830,7 @@ Background sync, push notifications (PRD §4 non-goals).
 ### [PERF005] Pool merge and checkout particle emitters instead of creating them per event
 
 - **Category:** PERF
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#9](https://github.com/anushibinj/cocktail-matcher/pull/9) (wave 1)
 - **Priority:** P3
 - **Effort:** S
 - **Confidence:** Medium
@@ -2413,6 +2442,7 @@ New documentation sites.
 ### [DX004] Add an opt-in debug and test hook
 
 - **Category:** DX
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#8](https://github.com/anushibinj/cocktail-matcher/pull/8) (wave 1)
 - **Priority:** P2
 - **Effort:** XS
 - **Confidence:** High
@@ -2464,6 +2494,7 @@ An in-game developer UI.
 ### [SEC001] Upgrade Vite to a patched release (6 audit advisories; dev server is exposed on the LAN)
 
 - **Category:** SEC
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#5](https://github.com/anushibinj/cocktail-matcher/pull/5) (wave 1)
 - **Priority:** P2
 - **Effort:** XS
 - **Confidence:** High
