@@ -1,9 +1,15 @@
+import Phaser from 'phaser';
 import { SaveData } from '../types/game';
 import { GAME_CONFIG } from '../game/config/gameConfig';
+
+/** Emitted on SaveManager.events after the sound or music setting changes. */
+export const SETTINGS_CHANGED_EVENT = 'settingschanged';
 
 export class SaveManager {
   private static instance: SaveManager;
   private data: SaveData;
+  /** Lets every on-screen toggle refresh from one source of truth. */
+  public readonly events = new Phaser.Events.EventEmitter();
 
   private constructor() {
     this.data = this.load();
@@ -73,6 +79,7 @@ export class SaveManager {
   public setSoundEnabled(enabled: boolean): void {
     this.data.soundEnabled = enabled;
     this.save();
+    this.events.emit(SETTINGS_CHANGED_EVENT);
   }
 
   public getMusicEnabled(): boolean {
@@ -82,6 +89,7 @@ export class SaveManager {
   public setMusicEnabled(enabled: boolean): void {
     this.data.musicEnabled = enabled;
     this.save();
+    this.events.emit(SETTINGS_CHANGED_EVENT);
   }
 
   public recordGamePlayed(highestLevel: number): void {
