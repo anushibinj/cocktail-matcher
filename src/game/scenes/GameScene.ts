@@ -81,6 +81,7 @@ export class GameScene extends Phaser.Scene {
     this.orderManager = new OrderManager(
       this,
       this.scoreManager,
+      () => this.isPlaying(),
       (_order, drink) => {
         const idx = this.droppedDrinks.indexOf(drink);
         if (idx !== -1) {
