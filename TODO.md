@@ -92,7 +92,7 @@ The smallest coherent set that noticeably improves the game without a redesign:
 | A11Y004 | HUD buttons are about 23 CSS px on a 390 px phone. Easy, high-value fix for every touch player. |
 | A11Y005 | Order tickets render 5–7 CSS px text, so the To-Go mechanic is unreadable on phones. |
 
-BUG002, BUG003 and BUG001 touch `DrinkSpawner`/`GameScene` and should land first, in that order. BUG005, BUG006, A11Y004 and A11Y005 are independent and can run in parallel. UX001 and UX002 follow because they add HUD elements that A11Y004/A11Y005 resize.
+BUG002, BUG003 and BUG001 touch `DrinkSpawner`/`GameScene` and should land first, in that order. BUG005 and BUG006 are independent and can run in parallel with them. UX001 and UX002 come next, and A11Y004/A11Y005 last, so the resizing pass also covers the new HUD elements (execution rows 1–6 and 17–21). For this milestone, do A11Y004 on its own; its optional pairing with UI001 (row 20) can wait for ARCH001.
 
 ## Detailed TODOs
 
