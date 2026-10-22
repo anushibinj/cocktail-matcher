@@ -1,15 +1,14 @@
 import Phaser from 'phaser';
-import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../../storage/SaveManager';
 import { GAME_CONFIG } from '../config/gameConfig';
+import { UIButton } from './components/UIButton';
+import { UIToggle, SOUND_SETTING, MUSIC_SETTING } from './components/UIToggle';
 
 export class HUD {
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
   private scoreText!: Phaser.GameObjects.Text;
   private bestScoreText!: Phaser.GameObjects.Text;
-  private soundBtnText!: Phaser.GameObjects.Text;
-  private musicBtnText!: Phaser.GameObjects.Text;
   private onPauseClicked: () => void;
 
   constructor(scene: Phaser.Scene, onPauseClicked: () => void) {
@@ -23,45 +22,35 @@ export class HUD {
 
   private createTopButtons(): void {
     // Top right utility buttons
-    const sfxBtn = this.scene.add.sprite(560, 48, 'ui_btn_circle').setDisplaySize(42, 42);
-    sfxBtn.setInteractive({ useHandCursor: true });
-    this.soundBtnText = this.scene.add.text(560, 48, SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇', {
-      fontSize: '20px'
-    }).setOrigin(0.5);
+    const iconSize = { width: 42, height: 42 };
 
-    sfxBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
-      const current = SaveManager.getInstance().getSoundEnabled();
-      AudioManager.getInstance().setSoundEnabled(!current);
-      this.soundBtnText.setText(!current ? '🔊' : '🔇');
+    const soundToggle = new UIToggle(this.scene, 560, 48, {
+      variant: 'icon',
+      ...iconSize,
+      setting: SOUND_SETTING,
+      onText: '🔊',
+      offText: '🔇',
+      label: 'Sound effects'
     });
 
-    const musicBtn = this.scene.add.sprite(614, 48, 'ui_btn_circle').setDisplaySize(42, 42);
-    musicBtn.setInteractive({ useHandCursor: true });
-    this.musicBtnText = this.scene.add.text(614, 48, SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫', {
-      fontSize: '20px'
-    }).setOrigin(0.5);
-
-    musicBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
-      const current = SaveManager.getInstance().getMusicEnabled();
-      AudioManager.getInstance().setMusicEnabled(!current);
-      this.musicBtnText.setText(!current ? '🎵' : '🚫');
+    const musicToggle = new UIToggle(this.scene, 614, 48, {
+      variant: 'icon',
+      ...iconSize,
+      setting: MUSIC_SETTING,
+      onText: '🎵',
+      offText: '🚫',
+      label: 'Music'
     });
 
-    const pauseBtn = this.scene.add.sprite(668, 48, 'ui_btn_circle').setDisplaySize(42, 42);
-    pauseBtn.setInteractive({ useHandCursor: true });
-    const pauseIcon = this.scene.add.text(668, 48, '⏸', {
-      fontSize: '20px',
-      color: '#ffffff'
-    }).setOrigin(0.5);
-
-    pauseBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
-      this.onPauseClicked();
+    const pauseBtn = new UIButton(this.scene, 668, 48, {
+      variant: 'icon',
+      ...iconSize,
+      text: '⏸',
+      label: 'Pause'
     });
+    pauseBtn.on(UIButton.EVENTS.ACTIVATE, () => this.onPauseClicked());
 
-    this.container.add([sfxBtn, this.soundBtnText, musicBtn, this.musicBtnText, pauseBtn, pauseIcon]);
+    this.container.add([soundToggle, musicToggle, pauseBtn]);
   }
 
   private createBottomScoreCards(): void {
@@ -124,10 +113,5 @@ export class HUD {
       duration: 140,
       ease: 'Quad.easeOut'
     });
-  }
-
-  public updateAudioIcons(): void {
-    this.soundBtnText.setText(SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇');
-    this.musicBtnText.setText(SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫');
   }
 }
