@@ -22,6 +22,8 @@ pnpm run preview      # serve the production build locally
 
 There is no test suite and no lint script configured — `pnpm run build` (which runs `tsc` with `noEmit`) is the only automated correctness check available. Always run it after changes since `tsconfig.json` has `strict`, `noUnusedLocals`, and `noUnusedParameters` enabled.
 
+**Debug/test hook** (`src/debug.ts`): in `pnpm run dev`, or any build opened with `?debug=1`, `window.__COCKTAIL__` exposes `game`, `getScene()`, `getState()`, `spawnDrink(level, x, y)`, `setScore(n)`, `forceGameOver()`, `setSeed(n | null)` (seeds the spawner/order RNG in `systems/spawnPicker.ts` and restarts a running game) and `toggleMatterDebug()` (also the `` ` `` key). Production without the flag never loads it. Keep it test-only: no in-game developer UI.
+
 Deployment is `firebase deploy --only hosting` after `pnpm run build` (see `firebase.json` / `.firebaserc`); the Firebase project is `fastorial` / site `fastorial-70d16`. GitHub Actions auto-deploy on merge/PR using npm.
 
 ## Architecture

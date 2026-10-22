@@ -3,6 +3,7 @@ import { Drink } from '../entities/Drink';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { AudioManager } from './AudioManager';
 import { getDrinkByLevel } from '../config/drinks';
+import { gameRandom, pickWeightedLevel } from './spawnPicker';
 
 export class DrinkSpawner {
   private scene: Phaser.Scene;
@@ -239,17 +240,7 @@ export class DrinkSpawner {
   }
 
   private getRandomSpawnLevel(): number {
-    const dist = GAME_CONFIG.SPAWN_DISTRIBUTION;
-    const totalWeight = dist.reduce((sum, item) => sum + item.weight, 0);
-    let rand = Math.random() * totalWeight;
-
-    for (const item of dist) {
-      if (rand < item.weight) {
-        return item.level;
-      }
-      rand -= item.weight;
-    }
-    return 0;
+    return pickWeightedLevel(GAME_CONFIG.SPAWN_DISTRIBUTION, gameRandom);
   }
 
   public setEnabled(enabled: boolean): void {
