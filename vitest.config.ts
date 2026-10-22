@@ -15,7 +15,8 @@ export default defineConfig({
         'src/game/systems/dangerTimer.ts',
         'src/game/systems/ScoreManager.ts',
         'src/storage/SaveManager.ts'
-      ]
+      ],
+      thresholds: { lines: 90 }
     }
   }
 });
