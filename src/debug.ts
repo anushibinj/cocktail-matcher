@@ -102,3 +102,8 @@ export function installDebugHook(game: Phaser.Game): void {
 
   console.info(`[debug] window.__COCKTAIL__ ready; press \` to toggle the Matter overlay`);
 }
+
+// DX002 gate check: deliberate lint error, reverted in the next commit.
+export function ciGateLintCheck(): void {
+  debugger;
+}
