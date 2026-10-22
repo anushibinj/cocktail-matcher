@@ -30,3 +30,9 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 export const game = new Phaser.Game(config);
+
+// Opt-in debug/test hook (window.__COCKTAIL__). Dynamically imported so
+// production without `?debug` never downloads it.
+if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug')) {
+  void import('./debug').then(({ installDebugHook }) => installDebugHook(game));
+}
