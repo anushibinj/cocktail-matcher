@@ -27,3 +27,8 @@ dist-ssr
 .firebase
 # Test coverage
 coverage
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

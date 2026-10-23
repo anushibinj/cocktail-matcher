@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import { GameScene } from './game/scenes/GameScene';
 import { setGameSeed } from './game/systems/spawnPicker';
+import { DrinkSpawner } from './game/systems/DrinkSpawner';
 import type { Drink } from './game/entities/Drink';
 
 // Opt-in debug/test hook. Loaded by main.ts only in dev or with `?debug` in
@@ -19,6 +20,8 @@ export interface CocktailDebugApi {
     spawnQueue: number[];
     orderLevels: number[];
   };
+  /** Drinks the player launched since page load (all games); unlike the board count, merges and orders never lower it. */
+  getLaunchCount(): number;
   spawnDrink(level: number, x: number, y: number): Drink;
   setScore(score: number): void;
   forceGameOver(): void;
@@ -84,6 +87,7 @@ export function installDebugHook(game: Phaser.Game): void {
         orderLevels: scene['orderManager']['activeOrders'].map((o) => o.targetLevel)
       };
     },
+    getLaunchCount: () => DrinkSpawner.launchCount,
     spawnDrink: (level, x, y) => requireScene().debugSpawnDrink(level, x, y),
     setScore: (score) => requireScene().debugSetScore(score),
     forceGameOver: () => requireScene().debugForceGameOver(),
