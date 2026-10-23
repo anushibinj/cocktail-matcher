@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from '../config/gameConfig';
+import { GAME_CONFIG, LAYOUT } from '../config/gameConfig';
 import { SaveManager } from '../../storage/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
+import { UIButton } from '../ui/components/UIButton';
+import { UIToggle, SOUND_SETTING, MUSIC_SETTING } from '../ui/components/UIToggle';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -10,12 +12,13 @@ export class MenuScene extends Phaser.Scene {
 
   public create(): void {
     const { WIDTH, HEIGHT } = GAME_CONFIG;
+    const { TITLE_Y, BEST_CARD, PLAY_BUTTON, TIP_Y } = LAYOUT.MENU;
 
     // Background
     this.add.image(WIDTH / 2, HEIGHT / 2, 'bg_tropical');
 
     // Title Logo Group
-    const titleContainer = this.add.container(WIDTH / 2, HEIGHT * 0.28);
+    const titleContainer = this.add.container(WIDTH / 2, TITLE_Y);
 
     // Glowing main cocktail illustration (Tier 5 Tropical Punch)
     const logoDrink = this.add.sprite(0, -60, 'drink_5');
@@ -71,9 +74,11 @@ export class MenuScene extends Phaser.Scene {
 
     // Best Score Card
     const bestScore = SaveManager.getInstance().getBestScore();
-    const bestCard = this.add.container(WIDTH / 2, HEIGHT * 0.54);
+    const bestCard = this.add.container(WIDTH / 2, BEST_CARD.Y);
 
-    const bestBg = this.add.sprite(0, 0, 'ui_card_bg').setDisplaySize(240, 76);
+    const bestBg = this.add
+      .sprite(0, 0, 'ui_card_bg')
+      .setDisplaySize(BEST_CARD.WIDTH, BEST_CARD.HEIGHT);
     const bestLabel = this.add
       .text(0, -18, 'BEST SCORE', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
@@ -95,17 +100,14 @@ export class MenuScene extends Phaser.Scene {
     bestCard.add([bestBg, bestLabel, bestVal]);
 
     // Play Button
-    const playBtn = this.add
-      .sprite(WIDTH / 2, HEIGHT * 0.68, 'ui_btn_primary')
-      .setDisplaySize(280, 78);
-    playBtn.setInteractive({ useHandCursor: true });
-
-    const playText = this.add
-      .text(WIDTH / 2, HEIGHT * 0.68, 'PLAY NOW', {
-        fontFamily: 'Segoe UI, system-ui, sans-serif',
+    const playBtn = new UIButton(this, WIDTH / 2, PLAY_BUTTON.Y, {
+      variant: 'primary',
+      width: PLAY_BUTTON.WIDTH,
+      height: PLAY_BUTTON.HEIGHT,
+      text: 'PLAY NOW',
+      label: 'Play now',
+      textStyle: {
         fontSize: '28px',
-        fontStyle: 'bold',
-        color: '#ffffff',
         shadow: {
           offsetX: 0,
           offsetY: 2,
@@ -113,12 +115,12 @@ export class MenuScene extends Phaser.Scene {
           blur: 4,
           fill: true
         }
-      })
-      .setOrigin(0.5);
+      }
+    });
 
     // Pulse animation for Play button
     this.tweens.add({
-      targets: [playBtn, playText],
+      targets: playBtn,
       scaleX: 1.05,
       scaleY: 1.05,
       duration: 800,
@@ -127,8 +129,9 @@ export class MenuScene extends Phaser.Scene {
       ease: 'Sine.easeInOut'
     });
 
-    playBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
+    playBtn.on(UIButton.EVENTS.ACTIVATE, () => {
+      // Ignore further taps while the fade-out runs
+      playBtn.setEnabled(false);
       AudioManager.getInstance().playRestart();
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.time.delayedCall(200, () => {
@@ -138,7 +141,7 @@ export class MenuScene extends Phaser.Scene {
 
     // How to play quick tip
     this.add
-      .text(WIDTH / 2, HEIGHT * 0.82, "Drop cocktails • Match pairs • Don't overflow!", {
+      .text(WIDTH / 2, TIP_Y, "Drop cocktails • Match pairs • Don't overflow!", {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '16px',
         color: '#cfcbe8',
@@ -152,38 +155,28 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createAudioControls(): void {
-    const { WIDTH } = GAME_CONFIG;
+    const { Y, SIZE, SOUND_X, MUSIC_X } = LAYOUT.MENU.AUDIO_BUTTONS;
+    const iconStyle = {
+      variant: 'icon' as const,
+      width: SIZE,
+      height: SIZE,
+      textStyle: { fontSize: '22px' }
+    };
 
-    // Sound toggle
-    const soundBtn = this.add.sprite(WIDTH - 110, 60, 'ui_btn_circle').setDisplaySize(48, 48);
-    soundBtn.setInteractive({ useHandCursor: true });
-    const soundText = this.add
-      .text(WIDTH - 110, 60, SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇', {
-        fontSize: '22px'
-      })
-      .setOrigin(0.5);
-
-    soundBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
-      const current = SaveManager.getInstance().getSoundEnabled();
-      AudioManager.getInstance().setSoundEnabled(!current);
-      soundText.setText(!current ? '🔊' : '🔇');
+    new UIToggle(this, SOUND_X, Y, {
+      ...iconStyle,
+      setting: SOUND_SETTING,
+      onText: '🔊',
+      offText: '🔇',
+      label: 'Sound effects'
     });
 
-    // Music toggle
-    const musicBtn = this.add.sprite(WIDTH - 50, 60, 'ui_btn_circle').setDisplaySize(48, 48);
-    musicBtn.setInteractive({ useHandCursor: true });
-    const musicText = this.add
-      .text(WIDTH - 50, 60, SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫', {
-        fontSize: '22px'
-      })
-      .setOrigin(0.5);
-
-    musicBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
-      const current = SaveManager.getInstance().getMusicEnabled();
-      AudioManager.getInstance().setMusicEnabled(!current);
-      musicText.setText(!current ? '🎵' : '🚫');
+    new UIToggle(this, MUSIC_X, Y, {
+      ...iconStyle,
+      setting: MUSIC_SETTING,
+      onText: '🎵',
+      offText: '🚫',
+      label: 'Music'
     });
   }
 }

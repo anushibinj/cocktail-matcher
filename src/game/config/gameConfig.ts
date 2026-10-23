@@ -14,8 +14,8 @@ import { SpawnDistribution } from '../../types/game';
 // reference ratio (tablets, older/wider phones, desktop windows) are left
 // exactly as before — this only changes behavior for the "too tall, too
 // narrow" case the reference design didn't anticipate.
-const REFERENCE_WIDTH = 720;
-const REFERENCE_HEIGHT = 1280;
+export const REFERENCE_WIDTH = 720;
+export const REFERENCE_HEIGHT = 1280;
 const REFERENCE_ASPECT = REFERENCE_HEIGHT / REFERENCE_WIDTH; // 1.7778 (9:16)
 const MAX_ASPECT = 2.4; // cap for extreme/edge-case aspect ratios (very tall+narrow phones)
 
@@ -37,9 +37,9 @@ const CANVAS_HEIGHT = computeCanvasHeight();
 // Scales a Y-coordinate tuned against the 1280-tall reference design so
 // vertical layout (board extent, spawn/danger lines, HUD) stretches to fill
 // the taller canvas on narrow/tall devices instead of leaving a gap at the
-// bottom. A no-op whenever CANVAS_HEIGHT === REFERENCE_HEIGHT.
-const scaleY = (referenceValue: number): number =>
-  Math.round((referenceValue / REFERENCE_HEIGHT) * CANVAS_HEIGHT);
+// bottom. A no-op whenever canvasHeight === REFERENCE_HEIGHT.
+export const scaleY = (referenceValue: number, canvasHeight: number = CANVAS_HEIGHT): number =>
+  Math.round((referenceValue / REFERENCE_HEIGHT) * canvasHeight);
 
 export const GAME_CONFIG = {
   // Canvas dimensions
@@ -107,3 +107,87 @@ export const GAME_CONFIG = {
   // LocalStorage Key
   STORAGE_KEY: 'cocktail_merge_save_v1'
 } as const;
+
+// Named UI anchors, grouped by component. X values are in the fixed
+// 720-wide reference space; Y values that sit relative to the bottom of the
+// screen are scaled via scaleY() so they follow the stretched canvas.
+// Modal offsets are relative to the card's center (the canvas center).
+// Built from a height argument so the layout can be recomputed for a new
+// canvas height later; LAYOUT is the layout for the current canvas.
+export function getLayout(canvasHeight: number) {
+  const sy = (referenceValue: number): number => scaleY(referenceValue, canvasHeight);
+
+  return {
+    HUD: {
+      // Top-right sound / music / pause cluster
+      BUTTONS: {
+        Y: 48,
+        SIZE: 42,
+        SOUND_X: 560,
+        MUSIC_X: 614,
+        PAUSE_X: 668
+      },
+      // SCORE (left) and BEST (right) cards near the bottom edge
+      SCORE_CARDS: {
+        Y: sy(1190),
+        WIDTH: 200,
+        HEIGHT: 72,
+        SCORE_X: 220,
+        BEST_X: 500,
+        LABEL_OFFSET_Y: -18,
+        VALUE_OFFSET_Y: 12
+      }
+    },
+
+    MENU: {
+      TITLE_Y: canvasHeight * 0.28,
+      BEST_CARD: { Y: canvasHeight * 0.54, WIDTH: 240, HEIGHT: 76 },
+      PLAY_BUTTON: { Y: canvasHeight * 0.68, WIDTH: 280, HEIGHT: 78 },
+      TIP_Y: canvasHeight * 0.82,
+      // Top-right sound / music toggles
+      AUDIO_BUTTONS: {
+        Y: 60,
+        SIZE: 48,
+        SOUND_X: REFERENCE_WIDTH - 110,
+        MUSIC_X: REFERENCE_WIDTH - 50
+      }
+    },
+
+    ORDERS: {
+      // Left and right ticket slot X, indexed by slot
+      SLOT_X: [280, 440] as const,
+      TICKET_Y: sy(135),
+      // Where a fulfilled drink flies to on checkout
+      CHECKOUT_Y: sy(145),
+      // A drink only counts for an order once it has travelled above this
+      // line onto the table
+      ON_TABLE_MAX_Y: sy(800)
+    },
+
+    MODALS: {
+      CENTER_X: REFERENCE_WIDTH / 2,
+      CENTER_Y: canvasHeight / 2,
+      PAUSE: {
+        CARD: { WIDTH: 480, HEIGHT: 500, RADIUS: 24 },
+        TITLE_Y: -200,
+        HELP_BOX: { X: -200, Y: -150, WIDTH: 400, HEIGHT: 110, RADIUS: 12 },
+        TOGGLE_Y: -10,
+        SOUND_TOGGLE_X: -100,
+        MUSIC_TOGGLE_X: 100,
+        RESUME_BUTTON: { Y: 75, WIDTH: 240, HEIGHT: 60 },
+        RESTART_Y: 145,
+        MENU_Y: 195
+      },
+      GAME_OVER: {
+        CARD: { WIDTH: 480, HEIGHT: 440, RADIUS: 24 },
+        TITLE_Y: -165,
+        PLAY_AGAIN_BUTTON: { Y: 95, WIDTH: 260, HEIGHT: 68 },
+        MENU_Y: 170
+      }
+    }
+  } as const;
+}
+
+export type Layout = ReturnType<typeof getLayout>;
+
+export const LAYOUT: Layout = getLayout(CANVAS_HEIGHT);

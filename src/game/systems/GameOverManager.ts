@@ -6,18 +6,19 @@ import { stepDangerTimer } from './dangerTimer';
 
 export class GameOverManager {
   private board: Board;
+  private isPlaying: () => boolean;
   private onGameOver: () => void;
-  private isGameOver: boolean = false;
   private timeInDanger: number = 0;
-  private isEnabled: boolean = true;
 
-  constructor(board: Board, onGameOver: () => void) {
+  constructor(board: Board, isPlaying: () => boolean, onGameOver: () => void) {
     this.board = board;
+    this.isPlaying = isPlaying;
     this.onGameOver = onGameOver;
   }
 
   public update(delta: number, droppedDrinks: Drink[]): void {
-    if (this.isGameOver || !this.isEnabled) return;
+    // Armed only while playing; onGameOver() leaves that phase right away
+    if (!this.isPlaying()) return;
 
     let hasDrinkInDanger = false;
 
@@ -62,20 +63,13 @@ export class GameOverManager {
   }
 
   private triggerGameOver(): void {
-    this.isGameOver = true;
     this.board.setDangerState(false);
     AudioManager.getInstance().playGameOver();
     this.onGameOver();
   }
 
-  public setEnabled(enabled: boolean): void {
-    this.isEnabled = enabled;
-  }
-
   public reset(): void {
-    this.isGameOver = false;
     this.timeInDanger = 0;
-    this.isEnabled = true;
     this.board.setDangerState(false);
   }
 }

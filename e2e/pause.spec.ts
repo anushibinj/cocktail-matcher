@@ -61,15 +61,13 @@ test('pause freezes drinks, clock and merges for 2 s; resume continues without a
   });
   await game.tap(game.ui.pauseResume);
   await game.waitForNoModal();
-  // The modal can close before the first world-enabled postupdate has run
-  await poll(() =>
-    game.page.evaluate(
-      () => (window as unknown as { __firstResumed?: unknown }).__firstResumed !== undefined
+  // Buttons act on the DOM pointerup, between frames, so the modal can be gone
+  // before the first resumed frame has run
+  const firstFrame = await game.page
+    .waitForFunction(
+      () => (window as unknown as { __firstResumed?: { y: number }[] }).__firstResumed
     )
-  ).toBe(true);
-  const firstFrame = await game.page.evaluate(
-    () => (window as unknown as { __firstResumed?: { y: number }[] }).__firstResumed
-  );
+    .then((h) => h.jsonValue());
   expect(firstFrame).toHaveLength(3);
   firstFrame!.forEach((d, i) => {
     // One physics step moves a rising drink a few px (more on a slow frame

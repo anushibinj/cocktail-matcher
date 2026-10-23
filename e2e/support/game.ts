@@ -1,5 +1,6 @@
 import { test as base, expect, type CDPSession, type Page } from '@playwright/test';
 import { installE2eHelpers, type ModalSnapshot } from './inPage';
+import { REFERENCE_HEIGHT, REFERENCE_WIDTH, getLayout } from '../../src/game/config/gameConfig';
 // Type-only: brings in the window.__COCKTAIL__ declaration (erased at runtime)
 export type { CocktailDebugApi } from '../../src/debug';
 
@@ -19,7 +20,7 @@ export function poll<T>(
 }
 
 /** Virtual canvas width; the height depends on the viewport (see gameConfig.ts). */
-export const GAME_WIDTH = 720;
+export const GAME_WIDTH = REFERENCE_WIDTH;
 
 export interface Point {
   x: number;
@@ -28,16 +29,18 @@ export interface Point {
 
 /** Every on-canvas control the suite taps, in game coordinates for a canvas of height `H`. */
 export function controls(H: number) {
+  const { HUD, MENU, MODALS } = getLayout(H);
+  const { PAUSE, GAME_OVER } = MODALS;
   return {
-    menuPlay: { x: 360, y: H * 0.68 },
-    hudSound: { x: 560, y: 48 },
-    hudMusic: { x: 614, y: 48 },
-    hudPause: { x: 668, y: 48 },
-    pauseResume: { x: 360, y: H / 2 + 75 },
-    pauseRestart: { x: 360, y: H / 2 + 145 },
-    pauseMenu: { x: 360, y: H / 2 + 195 },
-    gameOverPlayAgain: { x: 360, y: H / 2 + 95 },
-    gameOverMenu: { x: 360, y: H / 2 + 170 },
+    menuPlay: { x: GAME_WIDTH / 2, y: MENU.PLAY_BUTTON.Y },
+    hudSound: { x: HUD.BUTTONS.SOUND_X, y: HUD.BUTTONS.Y },
+    hudMusic: { x: HUD.BUTTONS.MUSIC_X, y: HUD.BUTTONS.Y },
+    hudPause: { x: HUD.BUTTONS.PAUSE_X, y: HUD.BUTTONS.Y },
+    pauseResume: { x: MODALS.CENTER_X, y: MODALS.CENTER_Y + PAUSE.RESUME_BUTTON.Y },
+    pauseRestart: { x: MODALS.CENTER_X, y: MODALS.CENTER_Y + PAUSE.RESTART_Y },
+    pauseMenu: { x: MODALS.CENTER_X, y: MODALS.CENTER_Y + PAUSE.MENU_Y },
+    gameOverPlayAgain: { x: MODALS.CENTER_X, y: MODALS.CENTER_Y + GAME_OVER.PLAY_AGAIN_BUTTON.Y },
+    gameOverMenu: { x: MODALS.CENTER_X, y: MODALS.CENTER_Y + GAME_OVER.MENU_Y },
     /** A point on the board below the drinks, where a tap aims and launches. */
     board: (x = 360): Point => ({ x, y: H * 0.7 }),
     /** Horizontal range of board taps that never get clamped by the walls. */
@@ -81,7 +84,7 @@ export const SAVE_KEY = 'cocktail_merge_save_v1';
 export class GameDriver {
   readonly touch: boolean;
   H = 0;
-  ui: Controls = controls(1280);
+  ui: Controls = controls(REFERENCE_HEIGHT);
   private cdpSession: CDPSession | null = null;
 
   constructor(
@@ -230,7 +233,8 @@ export class GameDriver {
     return this.page.evaluate(() => {
       const s = window.__COCKTAIL__!.getScene()!['spawner'];
       return {
-        isEnabled: s['isEnabled'],
+        // The spawner has no enable flag since ARCH002; input is live while playing
+        isEnabled: s['isPlaying'](),
         isCoolingDown: s['isCoolingDown'],
         armedPointerId: s['armedPointerId'],
         previewVisible: s['previewSprite'].visible,
@@ -248,7 +252,7 @@ export class GameDriver {
         worldEnabled: scene.matter.world.enabled,
         clockPaused: scene.time.paused,
         shaking: scene.cameras.main.shakeEffect.isRunning,
-        isGameActive: scene['isGameActive']
+        isGameActive: scene.isPlaying()
       };
     });
   }
@@ -268,7 +272,7 @@ export class GameDriver {
   async hudIcons(): Promise<{ sound: string; music: string }> {
     return this.page.evaluate(() => {
       const hud = window.__COCKTAIL__!.getScene()!['hud'];
-      return { sound: hud['soundBtnText'].text, music: hud['musicBtnText'].text };
+      return { sound: hud['soundToggle'].displayText, music: hud['musicToggle'].displayText };
     });
   }
 
