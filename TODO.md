@@ -99,7 +99,7 @@ BUG002, BUG003 and BUG001 touch `DrinkSpawner`/`GameScene` and should land first
 | Wave | Execution rows | TODO IDs | Status |
 |---|---|---|---|
 | 1 | 1–9 | BUG001, BUG002, BUG003, UX006, BUG004, BUG005, BUG009, A11Y007, BUG008, BUG006, BUG007, PERF005, SEC001, DX004 | ✅ Merged: [#4](https://github.com/anushibinj/cocktail-matcher/pull/4), [#5](https://github.com/anushibinj/cocktail-matcher/pull/5), [#6](https://github.com/anushibinj/cocktail-matcher/pull/6), [#7](https://github.com/anushibinj/cocktail-matcher/pull/7), [#8](https://github.com/anushibinj/cocktail-matcher/pull/8), [#9](https://github.com/anushibinj/cocktail-matcher/pull/9), [#10](https://github.com/anushibinj/cocktail-matcher/pull/10) |
-| 2 | 10–16 | ARCH002, DX001, DX002, SEC003, ARCH001, ARCH004, TEST001, TEST002 | 🚧 In progress |
+| 2 | 10–16 | ARCH002, DX001, DX002, SEC003, ARCH001, ARCH004, TEST001, TEST002 | ✅ Merged: [#11](https://github.com/anushibinj/cocktail-matcher/pull/11), [#12](https://github.com/anushibinj/cocktail-matcher/pull/12), [#13](https://github.com/anushibinj/cocktail-matcher/pull/13), [#14](https://github.com/anushibinj/cocktail-matcher/pull/14), [#15](https://github.com/anushibinj/cocktail-matcher/pull/15), [#16](https://github.com/anushibinj/cocktail-matcher/pull/16), [#17](https://github.com/anushibinj/cocktail-matcher/pull/17), [#18](https://github.com/anushibinj/cocktail-matcher/pull/18), [#19](https://github.com/anushibinj/cocktail-matcher/pull/19) |
 | 3–5 | 17–40 | Remaining items | ⏳ Not started |
 
 DX003 is partly done: #7 moved the asset READMEs out of `public/`, so `dist/` no longer ships them. The rest of DX003 (main README accuracy) is still open.
@@ -1875,6 +1875,7 @@ Changing FX design. Reduced-motion variants (A11Y006).
 ### [ARCH001] Create a shared UI button and toggle component
 
 - **Category:** ARCH
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#14](https://github.com/anushibinj/cocktail-matcher/pull/14) (wave 2)
 - **Priority:** P1
 - **Effort:** M
 - **Confidence:** High
@@ -1932,6 +1933,7 @@ Keyboard focus navigation (A11Y002). Icon art (UI001). Sizes (A11Y004). This ite
 ### [ARCH002] Introduce one explicit game phase instead of four drifting flags
 
 - **Category:** ARCH
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#15](https://github.com/anushibinj/cocktail-matcher/pull/15) (wave 2)
 - **Priority:** P2
 - **Effort:** M
 - **Confidence:** High
@@ -2039,6 +2041,7 @@ New artwork or tiers.
 ### [ARCH004] Centralize layout geometry and the reference-height scaling helper
 
 - **Category:** ARCH
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#19](https://github.com/anushibinj/cocktail-matcher/pull/19) (wave 2)
 - **Priority:** P2
 - **Effort:** S
 - **Confidence:** High
@@ -2191,6 +2194,7 @@ Behavior changes.
 ### [TEST001] Add a unit-test runner and cover the pure game rules
 
 - **Category:** TEST
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#12](https://github.com/anushibinj/cocktail-matcher/pull/12) (wave 2)
 - **Priority:** P2
 - **Effort:** M
 - **Confidence:** High
@@ -2244,6 +2248,7 @@ Browser and end-to-end tests (TEST002). Physics simulation tests.
 ### [TEST002] Add Playwright end-to-end and responsive smoke tests for the critical journey
 
 - **Category:** TEST
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#16](https://github.com/anushibinj/cocktail-matcher/pull/16), [anushibinj/cocktail-matcher#17](https://github.com/anushibinj/cocktail-matcher/pull/17), [anushibinj/cocktail-matcher#18](https://github.com/anushibinj/cocktail-matcher/pull/18) (wave 2)
 - **Priority:** P2
 - **Effort:** M
 - **Confidence:** High
@@ -2301,6 +2306,7 @@ Visual-diff baselines across many devices. Real-device farms.
 ### [DX001] Add ESLint and Prettier with scripts that match the codebase style
 
 - **Category:** DX
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#11](https://github.com/anushibinj/cocktail-matcher/pull/11) (wave 2)
 - **Priority:** P2
 - **Effort:** S
 - **Confidence:** High
@@ -2343,6 +2349,7 @@ Fixing every warning-level finding (track separately if numerous). CI wiring (DX
 ### [DX002] Add a CI quality gate for every PR and standardise on one package manager
 
 - **Category:** DX
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#13](https://github.com/anushibinj/cocktail-matcher/pull/13) (wave 2)
 - **Priority:** P2
 - **Effort:** S
 - **Confidence:** High
@@ -2588,6 +2595,7 @@ Cache headers (PERF002, combinable).
 ### [SEC003] Pin GitHub Actions and declare least-privilege permissions in the deploy workflows
 
 - **Category:** SEC
+- **Status:** ✅ Done in [anushibinj/cocktail-matcher#13](https://github.com/anushibinj/cocktail-matcher/pull/13) (wave 2)
 - **Priority:** P3
 - **Effort:** XS
 - **Confidence:** High
