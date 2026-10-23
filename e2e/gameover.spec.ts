@@ -36,7 +36,11 @@ test('forced game over shows the modal and freezes score, best and board', async
   await game.waitFrames(5);
   const after = { state: await game.state(), save: await game.save() };
   expect(after).toEqual(before);
-  expect(await game.freeze()).toMatchObject({ worldEnabled: false, clockPaused: true, isGameActive: false });
+  expect(await game.freeze()).toMatchObject({
+    worldEnabled: false,
+    clockPaused: true,
+    isGameActive: false
+  });
   expect((await game.spawner()).isEnabled).toBe(false);
 
   // Taps on the board under the modal launch nothing
@@ -75,7 +79,7 @@ test('Play Again and Main Menu launch nothing; Play Again starts a clean run', a
 
 test('the new-best badge shows only for a strict record', async ({ game }) => {
   const endRunWith = async (score: number) => {
-    await game.page.evaluate(s => {
+    await game.page.evaluate((s) => {
       window.__COCKTAIL__!.setScore(s);
       window.__COCKTAIL__!.forceGameOver();
     }, score);

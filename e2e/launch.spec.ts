@@ -44,7 +44,10 @@ test('a tap or drag-and-release launches exactly one drink under the release; th
   expect(Math.abs((await newestDrink(game)).x - 250)).toBeLessThanOrEqual(4);
 });
 
-test('touch: a second finger or a cancelled touch never launches an extra drink', async ({ game, allowedProblems }) => {
+test('touch: a second finger or a cancelled touch never launches an extra drink', async ({
+  game,
+  allowedProblems
+}) => {
   test.skip(!game.touch, 'touch only');
   // Chromium's intervention notice for Phaser's preventDefault() on a touchcancel
   allowedProblems.push(/Ignored attempt to cancel a touchcancel event/);

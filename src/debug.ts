@@ -16,7 +16,10 @@ export interface CocktailDebugApi {
   /** The running GameScene, or null when on the menu/boot screen. */
   getScene(): GameScene | null;
   /** Score, drinks on the board, the spawner's current/next levels and order ticket levels. */
-  getState(): ReturnType<GameScene['debugGetState']> & { spawnQueue: number[]; orderLevels: number[] };
+  getState(): ReturnType<GameScene['debugGetState']> & {
+    spawnQueue: number[];
+    orderLevels: number[];
+  };
   /** Drinks the player launched since page load (all games); unlike the board count, merges and orders never lower it. */
   getLaunchCount(): number;
   spawnDrink(level: number, x: number, y: number): Drink;
@@ -81,21 +84,21 @@ export function installDebugHook(game: Phaser.Game): void {
       return {
         ...scene.debugGetState(),
         spawnQueue: [spawner['currentLevel'], spawner['nextLevel']],
-        orderLevels: scene['orderManager']['activeOrders'].map(o => o.targetLevel)
+        orderLevels: scene['orderManager']['activeOrders'].map((o) => o.targetLevel)
       };
     },
     getLaunchCount: () => DrinkSpawner.launchCount,
     spawnDrink: (level, x, y) => requireScene().debugSpawnDrink(level, x, y),
-    setScore: score => requireScene().debugSetScore(score),
+    setScore: (score) => requireScene().debugSetScore(score),
     forceGameOver: () => requireScene().debugForceGameOver(),
-    setSeed: seed => {
+    setSeed: (seed) => {
       setGameSeed(seed);
       getScene()?.scene.restart();
     },
     toggleMatterDebug
   };
 
-  window.addEventListener('keydown', event => {
+  window.addEventListener('keydown', (event) => {
     if (event.code === MATTER_DEBUG_KEY && getScene()) {
       toggleMatterDebug();
     }

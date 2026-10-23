@@ -25,14 +25,18 @@ test('restart resets the score to 0, clears the board and leaves two tickets', a
   const t = await game.tickets();
   expect(t.levels).toHaveLength(2);
   expect(t.views).toBe(2);
-  expect(await game.freeze()).toMatchObject({ worldEnabled: true, clockPaused: false, isGameActive: true });
+  expect(await game.freeze()).toMatchObject({
+    worldEnabled: true,
+    clockPaused: false,
+    isGameActive: true
+  });
   await game.waitReadyToLaunch();
   await game.launchAt(360);
 });
 
 test('restart during an order checkout leaks no reward or ticket', async ({ game, page }) => {
   const warnings: string[] = [];
-  page.on('console', msg => {
+  page.on('console', (msg) => {
     if (msg.type() === 'warning') warnings.push(msg.text());
   });
   // A drink of a ticket's level on the table starts a checkout
@@ -47,7 +51,7 @@ test('restart during an order checkout leaks no reward or ticket', async ({ game
   // Stretch the checkout's fly-to-ticket animation so it is still running at the restart
   await game.page.evaluate(() => {
     const orders = window.__COCKTAIL__!.getScene()!['orderManager'];
-    orders['checkoutTweens'].forEach(t => (t.timeScale = 0.02));
+    orders['checkoutTweens'].forEach((t) => (t.timeScale = 0.02));
   });
   expect(await game.score()).toBe(0);
 

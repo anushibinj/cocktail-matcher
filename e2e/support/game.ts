@@ -11,7 +11,10 @@ export type { CocktailDebugApi } from '../../src/debug';
  * expect.poll with short, flat intervals: the default backoff grows to 1 s,
  * which adds up fast when every step waits on game state.
  */
-export function poll<T>(fn: () => Promise<T>, options: { message?: string; timeout?: number } = {}) {
+export function poll<T>(
+  fn: () => Promise<T>,
+  options: { message?: string; timeout?: number } = {}
+) {
   return expect.poll(fn, { intervals: [50, 100, 150, 200], ...options });
 }
 
@@ -81,7 +84,10 @@ export class GameDriver {
   ui: Controls = controls(1280);
   private cdpSession: CDPSession | null = null;
 
-  constructor(readonly page: Page, touch: boolean) {
+  constructor(
+    readonly page: Page,
+    touch: boolean
+  ) {
     this.touch = touch;
   }
 
@@ -101,21 +107,23 @@ export class GameDriver {
   }
 
   async waitForMenu(): Promise<void> {
-    await poll(() => this.page.evaluate(() => !!window.__COCKTAIL__?.game.scene.isActive('MenuScene')), {
+    await poll(
+      () => this.page.evaluate(() => !!window.__COCKTAIL__?.game.scene.isActive('MenuScene')),
+      {
         timeout: 20_000
-      })
-      .toBe(true);
+      }
+    ).toBe(true);
   }
 
   async activeScenes(): Promise<string[]> {
     return this.page.evaluate(() =>
-      window.__COCKTAIL__!.game.scene.getScenes(true).map(s => s.scene.key)
+      window.__COCKTAIL__!.game.scene.getScenes(true).map((s) => s.scene.key)
     );
   }
 
   /** Seeds the spawner/order RNG. Call on the menu so it doesn't restart a game. */
   async setSeed(seed: number | null): Promise<void> {
-    await this.page.evaluate(s => window.__COCKTAIL__!.setSeed(s), seed);
+    await this.page.evaluate((s) => window.__COCKTAIL__!.setSeed(s), seed);
   }
 
   /** Taps PLAY and waits until the first drink can be launched. */
@@ -214,7 +222,7 @@ export class GameDriver {
 
   async drinks(): Promise<DrinkSnapshot[]> {
     return this.page.evaluate(() =>
-      window.__COCKTAIL__!.getState().drinks.map(d => ({ level: d.level, x: d.x, y: d.y }))
+      window.__COCKTAIL__!.getState().drinks.map((d) => ({ level: d.level, x: d.x, y: d.y }))
     );
   }
 
@@ -250,7 +258,7 @@ export class GameDriver {
     return this.page.evaluate(() => {
       const orders = window.__COCKTAIL__!.getScene()!['orderManager'];
       return {
-        levels: orders['activeOrders'].map(o => o.targetLevel),
+        levels: orders['activeOrders'].map((o) => o.targetLevel),
         views: orders['container'].list.length,
         checkingOut: orders['isCheckingOut']
       };
@@ -265,7 +273,7 @@ export class GameDriver {
   }
 
   async save(): Promise<Record<string, unknown> | null> {
-    return this.page.evaluate(key => {
+    return this.page.evaluate((key) => {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
     }, SAVE_KEY);
@@ -280,26 +288,25 @@ export class GameDriver {
   async waitFrames(frames: number): Promise<void> {
     const start = await this.page.evaluate(() => window.__COCKTAIL__!.game.loop.frame);
     await poll(() => this.page.evaluate(() => window.__COCKTAIL__!.game.loop.frame), {
-        timeout: 20_000 + frames * 50
-      })
-      .toBeGreaterThanOrEqual(start + frames);
+      timeout: 20_000 + frames * 50
+    }).toBeGreaterThanOrEqual(start + frames);
   }
 
   /** Waits until a tap on the board would launch: enabled, no cooldown, preview fully popped in. */
   async waitReadyToLaunch(): Promise<void> {
     await poll(async () => {
-        const s = await this.spawner();
-        return s.isEnabled && !s.isCoolingDown && s.previewVisible && s.previewScale > 0.5;
-      })
-      .toBe(true);
+      const s = await this.spawner();
+      return s.isEnabled && !s.isCoolingDown && s.previewVisible && s.previewScale > 0.5;
+    }).toBe(true);
     // The pop-in tween eases past its target; let it settle
     await poll(() =>
-        this.page.evaluate(() => {
-          const scene = window.__COCKTAIL__!.getScene()!;
-          return scene.tweens.getTweens().some(t => t.targets.includes(scene['spawner']['previewSprite']));
-        })
-      )
-      .toBe(false);
+      this.page.evaluate(() => {
+        const scene = window.__COCKTAIL__!.getScene()!;
+        return scene.tweens
+          .getTweens()
+          .some((t) => t.targets.includes(scene['spawner']['previewSprite']));
+      })
+    ).toBe(false);
   }
 
   /** Taps the board at `x` and waits until exactly one more drink was launched. */
@@ -311,7 +318,7 @@ export class GameDriver {
 
   /** Slows (or restores, with 1) the scene clock, which drives the drop cooldown. */
   async setClockScale(scale: number): Promise<void> {
-    await this.page.evaluate(s => {
+    await this.page.evaluate((s) => {
       window.__COCKTAIL__!.getScene()!.time.timeScale = s;
     }, scale);
   }
@@ -325,7 +332,7 @@ export class GameDriver {
 
   /** Rendering facts about a text in the open modal (e.g. the new-best badge). */
   async modalText(text: string) {
-    return this.page.evaluate(t => window.__e2e.modalText(t), text);
+    return this.page.evaluate((t) => window.__e2e.modalText(t), text);
   }
 
   /** Presses the control at a game point within the current frame (no tap latency). */
@@ -336,16 +343,15 @@ export class GameDriver {
   async modalTitle(): Promise<string | null> {
     const m = await this.modal();
     if (!m) return null;
-    return m.texts.find(t => t === 'GAME PAUSED' || t === 'GAME OVER') ?? null;
+    return m.texts.find((t) => t === 'GAME PAUSED' || t === 'GAME OVER') ?? null;
   }
 
   /** Waits for the modal titled `title` to finish popping in, so its buttons take taps. */
   async waitForModal(title: 'GAME PAUSED' | 'GAME OVER'): Promise<ModalSnapshot> {
     await poll(async () => {
-        const m = await this.modal();
-        return !!m && m.ready && m.texts.includes(title);
-      })
-      .toBe(true);
+      const m = await this.modal();
+      return !!m && m.ready && m.texts.includes(title);
+    }).toBe(true);
     return (await this.modal())!;
   }
 
@@ -361,9 +367,12 @@ export class GameDriver {
 
   /** Emulates the tab going to the background (`hidden: true`) or coming back. */
   async setPageHidden(hidden: boolean): Promise<void> {
-    await this.page.evaluate(h => {
+    await this.page.evaluate((h) => {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => h });
-      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (h ? 'hidden' : 'visible') });
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => (h ? 'hidden' : 'visible')
+      });
       document.dispatchEvent(new Event('visibilitychange'));
     }, hidden);
   }
@@ -378,25 +387,27 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
+  // eslint-disable-next-line no-empty-pattern -- Playwright fixtures must destructure their first argument
   allowedProblems: async ({}, use) => {
     await use([]);
   },
   pageProblems: [
     async ({ page, allowedProblems }, use) => {
       const problems: string[] = [];
-      page.on('console', msg => {
+      page.on('console', (msg) => {
         if (msg.type() === 'error') problems.push(`console.error: ${msg.text()}`);
       });
-      page.on('pageerror', err => problems.push(`pageerror: ${err.message}`));
-      page.on('response', res => {
+      page.on('pageerror', (err) => problems.push(`pageerror: ${err.message}`));
+      page.on('response', (res) => {
         if (res.status() >= 400) problems.push(`HTTP ${res.status()}: ${res.url()}`);
       });
-      page.on('requestfailed', req => {
+      page.on('requestfailed', (req) => {
         // Media elements abort their own range requests; that is not a missing file
-        if (req.resourceType() !== 'media') problems.push(`request failed: ${req.url()} ${req.failure()?.errorText}`);
+        if (req.resourceType() !== 'media')
+          problems.push(`request failed: ${req.url()} ${req.failure()?.errorText}`);
       });
       await use(problems);
-      const unexpected = problems.filter(p => !allowedProblems.some(re => re.test(p)));
+      const unexpected = problems.filter((p) => !allowedProblems.some((re) => re.test(p)));
       expect(unexpected, 'console errors, page errors or failed requests').toEqual([]);
     },
     { auto: true }

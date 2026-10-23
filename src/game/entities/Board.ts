@@ -107,6 +107,11 @@ export class Board {
 
     // Inner highlight stroke
     this.tableGlow.lineStyle(2, isAlert ? 0xffaaaa : 0xffe8c6, 0.6);
-    this.tableGlow.strokeRoundedRect(LEFT + 4, TOP + 4, WIDTH - 8, HEIGHT - 8, { tl: 24, tr: 24, bl: 12, br: 12 });
+    this.tableGlow.strokeRoundedRect(LEFT + 4, TOP + 4, WIDTH - 8, HEIGHT - 8, {
+      tl: 24,
+      tr: 24,
+      bl: 12,
+      br: 12
+    });
   }
 }

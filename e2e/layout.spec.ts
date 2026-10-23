@@ -41,7 +41,10 @@ for (const [width, height] of [
   [390, 844],
   [360, 640]
 ]) {
-  test(`phone ${width}x${height}: fills the viewport with no scrollbars`, async ({ page, game }) => {
+  test(`phone ${width}x${height}: fills the viewport with no scrollbars`, async ({
+    page,
+    game
+  }) => {
     await page.setViewportSize({ width, height });
     await game.open();
     const m = await measure(page);

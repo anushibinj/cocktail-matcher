@@ -44,8 +44,9 @@ export function installE2eHelpers(): void {
     if (!game) return null;
     for (const scene of game.scene.getScenes(true)) {
       for (const obj of scene.children.list as Obj[]) {
-        if (obj.type !== 'Container' || !obj.visible || (obj.depth ?? 0) < 100 || !obj.list?.length) continue;
-        const card = obj.list.find(c => c.type === 'Container');
+        if (obj.type !== 'Container' || !obj.visible || (obj.depth ?? 0) < 100 || !obj.list?.length)
+          continue;
+        const card = obj.list.find((c) => c.type === 'Container');
         if (card) return { root: obj, card: card as unknown as Phaser.GameObjects.Container };
       }
     }
@@ -54,7 +55,7 @@ export function installE2eHelpers(): void {
 
   const texts = (o: Obj, out: Obj[]): Obj[] => {
     if (o.type === 'Text') out.push(o);
-    o.list?.forEach(c => texts(c, out));
+    o.list?.forEach((c) => texts(c, out));
     return out;
   };
 
@@ -63,7 +64,7 @@ export function installE2eHelpers(): void {
       const m = findModal();
       if (!m) return null;
       return {
-        texts: texts(m.root, []).map(t => t.text ?? ''),
+        texts: texts(m.root, []).map((t) => t.text ?? ''),
         ready: m.card.scaleX >= 0.999 && m.card.alpha >= 0.999
       };
     },
@@ -71,10 +72,10 @@ export function installE2eHelpers(): void {
     modalText(text) {
       const m = findModal();
       if (!m) return null;
-      const t = texts(m.root, []).find(o => o.text === text);
+      const t = texts(m.root, []).find((o) => o.text === text);
       if (!t) return null;
       const siblings = m.card.list as Obj[];
-      const firstGraphics = siblings.findIndex(o => o.type === 'Graphics');
+      const firstGraphics = siblings.findIndex((o) => o.type === 'Graphics');
       return {
         alpha: (t.alpha ?? 1) * m.card.alpha,
         visible: !!t.visible,
@@ -87,7 +88,7 @@ export function installE2eHelpers(): void {
       const scenes = game.scene.getScenes(true).reverse();
       for (const scene of scenes) {
         const input = scene.input;
-        const hits = (input as unknown as { _list: Obj[] })._list.filter(o => {
+        const hits = (input as unknown as { _list: Obj[] })._list.filter((o) => {
           const io = (o as unknown as { input?: { enabled: boolean } }).input;
           if (!io?.enabled || !o.willRender(scene.cameras.main)) return false;
           let p = (o as unknown as { parentContainer?: Obj }).parentContainer;
@@ -98,7 +99,10 @@ export function installE2eHelpers(): void {
           return b.contains(x, y);
         });
         if (!hits.length) continue;
-        const sorted = input.sortGameObjects(hits as Phaser.GameObjects.GameObject[], input.activePointer);
+        const sorted = input.sortGameObjects(
+          hits as Phaser.GameObjects.GameObject[],
+          input.activePointer
+        );
         sorted[0].emit('pointerdown', input.activePointer, 0, 0, { stopPropagation() {} });
         return true;
       }
@@ -107,7 +111,7 @@ export function installE2eHelpers(): void {
 
     pressModalText(text) {
       const m = findModal();
-      const t = m && texts(m.root, []).find(o => o.text === text);
+      const t = m && texts(m.root, []).find((o) => o.text === text);
       if (!t) return false;
       const b = (t as unknown as Phaser.GameObjects.Components.GetBounds).getBounds();
       return window.__e2e.press(b.centerX, b.centerY);

@@ -21,10 +21,12 @@ async function spawnRisingDrinks(game: GameDriver): Promise<void> {
     [y]
   );
   // Wait until they are visibly moving (gravity is upward)
-  await poll(async () => Math.min(...(await game.drinks()).map(d => d.y))).toBeLessThan(y - 20);
+  await poll(async () => Math.min(...(await game.drinks()).map((d) => d.y))).toBeLessThan(y - 20);
 }
 
-test('pause freezes drinks, clock and merges for 2 s; resume continues without a jump', async ({ game }) => {
+test('pause freezes drinks, clock and merges for 2 s; resume continues without a jump', async ({
+  game
+}) => {
   await spawnRisingDrinks(game);
   await game.pauseViaHud();
 
@@ -52,7 +54,9 @@ test('pause freezes drinks, clock and merges for 2 s; resume continues without a
   await poll(async () => (await game.freeze()).worldEnabled).toBe(true);
   const resumed = await game.drinks();
   for (const d of resumed.slice(0, 3)) {
-    const was = before.drinks.find(b => b.x === d.x || Math.abs(b.x - d.x) < 30 && b.level === d.level)!;
+    const was = before.drinks.find(
+      (b) => b.x === d.x || (Math.abs(b.x - d.x) < 30 && b.level === d.level)
+    )!;
     expect(Math.abs(d.y - was.y), 'no burst of accumulated physics on resume').toBeLessThan(60);
   }
   await poll(() => game.score()).toBeGreaterThan(before.score);
@@ -64,7 +68,7 @@ test('a merge screen shake stops when the game pauses', async ({ game }) => {
   // frame the shake starts (via a tab hide, the auto-pause path)
   const shookAndPaused = await game.page.evaluate(
     () =>
-      new Promise<boolean>(resolve => {
+      new Promise<boolean>((resolve) => {
         const api = window.__COCKTAIL__!;
         const scene = api.getScene()!;
         const onUpdate = () => {
@@ -134,7 +138,8 @@ test('hiding the tab auto-pauses only during play', async ({ game }) => {
 });
 
 test('menu round trips add no duplicate auto-pause listeners', async ({ game }) => {
-  const listeners = () => game.page.evaluate(() => window.__COCKTAIL__!.game.events.listenerCount('hidden'));
+  const listeners = () =>
+    game.page.evaluate(() => window.__COCKTAIL__!.game.events.listenerCount('hidden'));
   const inGame = await listeners();
 
   for (let i = 0; i < 3; i++) {

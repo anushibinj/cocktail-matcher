@@ -1,0 +1,7 @@
+# Prettier only formats TypeScript and the tool config files (see the format scripts).
+dist
+node_modules
+public
+*.md
+package-lock.json
+pnpm-lock.yaml

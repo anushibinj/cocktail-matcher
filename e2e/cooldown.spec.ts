@@ -9,7 +9,9 @@ test.beforeEach(async ({ game }) => {
   await game.startGame();
 });
 
-test('pause during the cooldown, wait, resume: the preview is back and the next tap launches', async ({ game }) => {
+test('pause during the cooldown, wait, resume: the preview is back and the next tap launches', async ({
+  game
+}) => {
   const queue = await game.spawner();
   // A slow scene clock keeps the cooldown pending until the pause lands
   await game.setClockScale(0.02);
