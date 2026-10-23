@@ -16,7 +16,8 @@ export default defineConfig({
         'src/game/systems/ScoreManager.ts',
         'src/storage/SaveManager.ts'
       ],
-      thresholds: { lines: 90 }
+      // Per file, so the large drinks.ts data literal can't mask an untested rule module
+      thresholds: { lines: 90, perFile: true }
     }
   }
 });

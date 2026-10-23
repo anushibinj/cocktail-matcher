@@ -23,7 +23,7 @@ pnpm run lint         # ESLint (flat config, typescript-eslint with type-aware r
 pnpm run format       # Prettier --write on src/**/*.ts and the root config files
 pnpm run format:check # Prettier --check on the same files
 pnpm test             # Vitest unit tests for the pure game rules (node env, no Phaser boot)
-pnpm run test:coverage  # same, with v8 coverage (fails under 90% lines on the rule modules)
+pnpm run test:coverage  # same, with v8 coverage (fails if any rule module is under 90% lines)
 ```
 
 Before committing, run `pnpm run format`, `pnpm run lint`, `pnpm test` and `pnpm run build` (which runs `tsc` with `noEmit`, so it also covers `typecheck`); `tsconfig.json` has `strict`, `noUnusedLocals`, and `noUnusedParameters` enabled. ESLint config lives in `eslint.config.js`, Prettier config in `.prettierrc.json` (single quotes, semicolons, no trailing commas, 100 columns). Prettier deliberately skips Markdown, lockfiles and `public/` (`.prettierignore`).
