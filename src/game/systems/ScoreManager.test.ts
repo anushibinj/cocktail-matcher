@@ -81,6 +81,13 @@ describe('ScoreManager best score and "new best"', () => {
     expect(score.hasBeatPreviousBest()).toBe(false);
   });
 
+  it('a zero score on a first run is not a new best', () => {
+    const { score, onScoreChanged } = startWithBest(0);
+    score.addScore(0);
+    expect(onScoreChanged).toHaveBeenLastCalledWith(0, 0, false);
+    expect(score.hasBeatPreviousBest()).toBe(false);
+  });
+
   it('any positive first score beats an empty save', () => {
     const { score } = startWithBest(0);
     score.addScore(10);
