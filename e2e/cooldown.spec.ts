@@ -84,7 +84,7 @@ test('restart during the cooldown keeps the fresh queue (no extra advance)', asy
 
   // Let a stale cooldown timer (if any survived) run out
   await game.setClockScale(1);
-  await game.waitFrames(15);
+  await game.waitFrames(60); // >= 1 s of scene clock, past any stale 450 ms timer
   const later = await game.spawner();
   expect([later.currentLevel, later.nextLevel]).toEqual([fresh.currentLevel, fresh.nextLevel]);
   expect(later.isCoolingDown).toBe(false);
