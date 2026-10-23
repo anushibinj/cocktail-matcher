@@ -106,7 +106,7 @@ export class DrinkSpawner {
   // whose release never reached the page must not block new ones.
   private isOtherArmedPointerDown(pointer: Phaser.Input.Pointer): boolean {
     if (this.armedPointerId === null || this.armedPointerId === pointer.id) return false;
-    const armed = this.scene.input.manager.pointers.find(p => p.id === this.armedPointerId);
+    const armed = this.scene.input.manager.pointers.find((p) => p.id === this.armedPointerId);
     return !!armed && armed.isDown;
   }
 

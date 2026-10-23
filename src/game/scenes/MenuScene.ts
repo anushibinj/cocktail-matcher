@@ -40,29 +40,33 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Title Text
-    const title = this.add.text(0, 50, 'COCKTAIL MERGE', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '44px',
-      fontStyle: 'bold',
-      color: '#ffd166',
-      stroke: '#3b185f',
-      strokeThickness: 8,
-      shadow: {
-        offsetX: 0,
-        offsetY: 6,
-        color: 'rgba(0,0,0,0.5)',
-        blur: 10,
-        fill: true
-      }
-    }).setOrigin(0.5);
+    const title = this.add
+      .text(0, 50, 'COCKTAIL MERGE', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '44px',
+        fontStyle: 'bold',
+        color: '#ffd166',
+        stroke: '#3b185f',
+        strokeThickness: 8,
+        shadow: {
+          offsetX: 0,
+          offsetY: 6,
+          color: 'rgba(0,0,0,0.5)',
+          blur: 10,
+          fill: true
+        }
+      })
+      .setOrigin(0.5);
 
-    const subtitle = this.add.text(0, 100, 'Tropical Drop & Match', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '20px',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5);
+    const subtitle = this.add
+      .text(0, 100, 'Tropical Drop & Match', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '20px',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 3
+      })
+      .setOrigin(0.5);
 
     titleContainer.add([logoDrink, title, subtitle]);
 
@@ -70,40 +74,50 @@ export class MenuScene extends Phaser.Scene {
     const bestScore = SaveManager.getInstance().getBestScore();
     const bestCard = this.add.container(WIDTH / 2, BEST_CARD.Y);
 
-    const bestBg = this.add.sprite(0, 0, 'ui_card_bg').setDisplaySize(BEST_CARD.WIDTH, BEST_CARD.HEIGHT);
-    const bestLabel = this.add.text(0, -18, 'BEST SCORE', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '14px',
-      fontStyle: 'bold',
-      color: '#ffbe0b'
-    }).setOrigin(0.5);
+    const bestBg = this.add
+      .sprite(0, 0, 'ui_card_bg')
+      .setDisplaySize(BEST_CARD.WIDTH, BEST_CARD.HEIGHT);
+    const bestLabel = this.add
+      .text(0, -18, 'BEST SCORE', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+        fontStyle: 'bold',
+        color: '#ffbe0b'
+      })
+      .setOrigin(0.5);
 
-    const bestVal = this.add.text(0, 14, `${bestScore}`, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    const bestVal = this.add
+      .text(0, 14, `${bestScore}`, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '28px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      })
+      .setOrigin(0.5);
 
     bestCard.add([bestBg, bestLabel, bestVal]);
 
     // Play Button
-    const playBtn = this.add.sprite(WIDTH / 2, PLAY_BUTTON.Y, 'ui_btn_primary').setDisplaySize(PLAY_BUTTON.WIDTH, PLAY_BUTTON.HEIGHT);
+    const playBtn = this.add
+      .sprite(WIDTH / 2, PLAY_BUTTON.Y, 'ui_btn_primary')
+      .setDisplaySize(PLAY_BUTTON.WIDTH, PLAY_BUTTON.HEIGHT);
     playBtn.setInteractive({ useHandCursor: true });
 
-    const playText = this.add.text(WIDTH / 2, PLAY_BUTTON.Y, 'PLAY NOW', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '28px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      shadow: {
-        offsetX: 0,
-        offsetY: 2,
-        color: 'rgba(0,0,0,0.4)',
-        blur: 4,
-        fill: true
-      }
-    }).setOrigin(0.5);
+    const playText = this.add
+      .text(WIDTH / 2, PLAY_BUTTON.Y, 'PLAY NOW', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '28px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        shadow: {
+          offsetX: 0,
+          offsetY: 2,
+          color: 'rgba(0,0,0,0.4)',
+          blur: 4,
+          fill: true
+        }
+      })
+      .setOrigin(0.5);
 
     // Pulse animation for Play button
     this.tweens.add({
@@ -126,13 +140,15 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // How to play quick tip
-    this.add.text(WIDTH / 2, TIP_Y, 'Drop cocktails • Match pairs • Don\'t overflow!', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '16px',
-      color: '#cfcbe8',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(0.5);
+    this.add
+      .text(WIDTH / 2, TIP_Y, "Drop cocktails • Match pairs • Don't overflow!", {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '16px',
+        color: '#cfcbe8',
+        stroke: '#000000',
+        strokeThickness: 2
+      })
+      .setOrigin(0.5);
 
     // Top Audio toggles
     this.createAudioControls();
@@ -144,9 +160,11 @@ export class MenuScene extends Phaser.Scene {
     // Sound toggle
     const soundBtn = this.add.sprite(SOUND_X, Y, 'ui_btn_circle').setDisplaySize(SIZE, SIZE);
     soundBtn.setInteractive({ useHandCursor: true });
-    const soundText = this.add.text(SOUND_X, Y, SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇', {
-      fontSize: '22px'
-    }).setOrigin(0.5);
+    const soundText = this.add
+      .text(SOUND_X, Y, SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇', {
+        fontSize: '22px'
+      })
+      .setOrigin(0.5);
 
     soundBtn.on('pointerdown', () => {
       AudioManager.getInstance().playButtonClick();
@@ -158,9 +176,11 @@ export class MenuScene extends Phaser.Scene {
     // Music toggle
     const musicBtn = this.add.sprite(MUSIC_X, Y, 'ui_btn_circle').setDisplaySize(SIZE, SIZE);
     musicBtn.setInteractive({ useHandCursor: true });
-    const musicText = this.add.text(MUSIC_X, Y, SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫', {
-      fontSize: '22px'
-    }).setOrigin(0.5);
+    const musicText = this.add
+      .text(MUSIC_X, Y, SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫', {
+        fontSize: '22px'
+      })
+      .setOrigin(0.5);
 
     musicBtn.on('pointerdown', () => {
       AudioManager.getInstance().playButtonClick();

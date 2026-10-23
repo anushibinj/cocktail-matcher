@@ -69,6 +69,15 @@ npm run preview
 
 The output files are generated in the `dist/` directory.
 
+## 🧹 Code Quality
+
+```bash
+pnpm run typecheck     # TypeScript type check (tsc --noEmit)
+pnpm run lint          # ESLint with typescript-eslint
+pnpm run format        # format TypeScript and config files with Prettier
+pnpm run format:check  # check formatting without writing
+```
+
 ---
 
 ## 🌐 Deploying to Firebase Hosting

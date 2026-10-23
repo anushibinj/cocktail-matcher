@@ -110,19 +110,23 @@ export class OrderManager {
     paperBg.strokeRoundedRect(-68, -42, 136, 100, 8);
 
     // Header "To-Go Order"
-    const headerText = this.scene.add.text(0, -32, 'To-Go Order', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '12px',
-      fontStyle: 'bold',
-      color: '#c9184a'
-    }).setOrigin(0.5);
+    const headerText = this.scene.add
+      .text(0, -32, 'To-Go Order', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '12px',
+        fontStyle: 'bold',
+        color: '#c9184a'
+      })
+      .setOrigin(0.5);
 
     // Order number
-    const subText = this.scene.add.text(0, -18, `Order #${order.orderNumber}`, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '10px',
-      color: '#888888'
-    }).setOrigin(0.5);
+    const subText = this.scene.add
+      .text(0, -18, `Order #${order.orderNumber}`, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '10px',
+        color: '#888888'
+      })
+      .setOrigin(0.5);
 
     // Target Drink Thumbnail
     const def = getDrinkByLevel(order.targetLevel);
@@ -136,23 +140,16 @@ export class OrderManager {
     rewardBg.lineStyle(1, 0xe0a96d, 0.8);
     rewardBg.strokeRoundedRect(-52, 34, 104, 18, 9);
 
-    const rewardText = this.scene.add.text(0, 43, `🪙 +${order.rewardScore}`, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '11px',
-      fontStyle: 'bold',
-      color: '#b06b00'
-    }).setOrigin(0.5);
+    const rewardText = this.scene.add
+      .text(0, 43, `🪙 +${order.rewardScore}`, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '11px',
+        fontStyle: 'bold',
+        color: '#b06b00'
+      })
+      .setOrigin(0.5);
 
-    ticketGroup.add([
-      stringLine,
-      pin,
-      paperBg,
-      headerText,
-      subText,
-      thumb,
-      rewardBg,
-      rewardText
-    ]);
+    ticketGroup.add([stringLine, pin, paperBg, headerText, subText, thumb, rewardBg, rewardText]);
 
     // Slide-down animation when ticket appears
     ticketGroup.setY(slotY - 40);
@@ -205,21 +202,25 @@ export class OrderManager {
 
     // 1. Show Green Checkmark on Ticket
     if (ticketView) {
-      const checkmark = this.scene.add.text(0, 10, '✔', {
-        fontSize: '44px',
-        color: '#10b981',
-        stroke: '#ffffff',
-        strokeThickness: 5
-      }).setOrigin(0.5);
+      const checkmark = this.scene.add
+        .text(0, 10, '✔', {
+          fontSize: '44px',
+          color: '#10b981',
+          stroke: '#ffffff',
+          strokeThickness: 5
+        })
+        .setOrigin(0.5);
       ticketView.add(checkmark);
 
-      this.trackCheckoutTween(this.scene.tweens.add({
-        targets: checkmark,
-        scaleX: { from: 0.5, to: 1.2 },
-        scaleY: { from: 0.5, to: 1.2 },
-        duration: 250,
-        yoyo: true
-      }));
+      this.trackCheckoutTween(
+        this.scene.tweens.add({
+          targets: checkmark,
+          scaleX: { from: 0.5, to: 1.2 },
+          scaleY: { from: 0.5, to: 1.2 },
+          duration: 250,
+          yoyo: true
+        })
+      );
     }
 
     // 2. Remove drink from Matter physics world immediately
@@ -239,47 +240,51 @@ export class OrderManager {
     // on-board display size, so an absolute target would snap the drink to
     // a wrong (often much larger) size mid-flight.
     this.flyingDrinks.add(drink);
-    this.trackCheckoutTween(this.scene.tweens.add({
-      targets: drink,
-      x: targetX,
-      y: targetY,
-      scaleX: drink.scaleX * 0.5,
-      scaleY: drink.scaleY * 0.5,
-      duration: 500,
-      ease: 'Cubic.easeInOut',
-      onComplete: () => {
-        // Star sparkle burst at checkout
-        this.triggerCheckoutSparkles(targetX, targetY);
+    this.trackCheckoutTween(
+      this.scene.tweens.add({
+        targets: drink,
+        x: targetX,
+        y: targetY,
+        scaleX: drink.scaleX * 0.5,
+        scaleY: drink.scaleY * 0.5,
+        duration: 500,
+        ease: 'Cubic.easeInOut',
+        onComplete: () => {
+          // Star sparkle burst at checkout
+          this.triggerCheckoutSparkles(targetX, targetY);
 
-        // Award score & cash register audio
-        this.scoreManager.addScore(order.rewardScore, targetX, targetY);
-        AudioManager.getInstance().playOrderComplete();
+          // Award score & cash register audio
+          this.scoreManager.addScore(order.rewardScore, targetX, targetY);
+          AudioManager.getInstance().playOrderComplete();
 
-        // Destroy drink
-        this.flyingDrinks.delete(drink);
-        drink.destroy();
+          // Destroy drink
+          this.flyingDrinks.delete(drink);
+          drink.destroy();
 
-        // Slide away ticket and spawn new order after brief delay
-        if (ticketView) {
-          this.trackCheckoutTween(this.scene.tweens.add({
-            targets: ticketView,
-            y: -100,
-            alpha: 0,
-            duration: 350,
-            ease: 'Quad.easeIn',
-            onComplete: () => {
-              ticketView.destroy();
-              this.ticketViews.delete(order.id);
-              this.spawnNewOrder(slotIndex);
-              this.isCheckingOut = false;
-            }
-          }));
-        } else {
-          this.spawnNewOrder(slotIndex);
-          this.isCheckingOut = false;
+          // Slide away ticket and spawn new order after brief delay
+          if (ticketView) {
+            this.trackCheckoutTween(
+              this.scene.tweens.add({
+                targets: ticketView,
+                y: -100,
+                alpha: 0,
+                duration: 350,
+                ease: 'Quad.easeIn',
+                onComplete: () => {
+                  ticketView.destroy();
+                  this.ticketViews.delete(order.id);
+                  this.spawnNewOrder(slotIndex);
+                  this.isCheckingOut = false;
+                }
+              })
+            );
+          } else {
+            this.spawnNewOrder(slotIndex);
+            this.isCheckingOut = false;
+          }
         }
-      }
-    }));
+      })
+    );
   }
 
   private trackCheckoutTween(tween: Phaser.Tweens.Tween): void {
@@ -296,9 +301,9 @@ export class OrderManager {
   public reset(): void {
     // Cancel any checkout still animating, so its reward, ticket slide and
     // replacement order don't land in the new game
-    this.checkoutTweens.forEach(t => t.remove());
+    this.checkoutTweens.forEach((t) => t.remove());
     this.checkoutTweens.clear();
-    this.flyingDrinks.forEach(d => d.destroy());
+    this.flyingDrinks.forEach((d) => d.destroy());
     this.flyingDrinks.clear();
     this.init();
   }
