@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { DRINKS } from '../config/drinks';
 import { canMerge, MergeCandidate } from './mergeRules';
 
-const MAX = 11;
+const MAX = DRINKS.length - 1;
 
 function drink(overrides: Partial<MergeCandidate> = {}): MergeCandidate {
   return { level: 3, isMerging: false, isDropped: true, active: true, ...overrides };
@@ -12,8 +13,12 @@ describe('canMerge', () => {
     expect(canMerge(drink(), drink(), MAX)).toBe(true);
   });
 
-  it('does not merge non-identical drinks', () => {
-    expect(canMerge(drink({ level: 3 }), drink({ level: 4 }), MAX)).toBe(false);
+  // Matter's bodyA/bodyB order is arbitrary, so check both argument orders
+  it.each([
+    [3, 4],
+    [4, 3]
+  ])('does not merge non-identical drinks (levels %i and %i)', (a, b) => {
+    expect(canMerge(drink({ level: a }), drink({ level: b }), MAX)).toBe(false);
   });
 
   it.each([
@@ -27,6 +32,10 @@ describe('canMerge', () => {
 
   it('never merges the max tier, so no invalid level is produced', () => {
     expect(canMerge(drink({ level: MAX }), drink({ level: MAX }), MAX)).toBe(false);
+  });
+
+  it('never merges a level above the max', () => {
+    expect(canMerge(drink({ level: MAX + 1 }), drink({ level: MAX + 1 }), MAX)).toBe(false);
   });
 
   it('merges the tier just below the max', () => {
