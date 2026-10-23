@@ -23,6 +23,11 @@ describe('stepDangerTimer', () => {
     expect(step.triggered).toBe(true);
   });
 
+  it('uses the grace period it is given', () => {
+    expect(stepDangerTimer(399, 100, true, 500).triggered).toBe(false);
+    expect(stepDangerTimer(400, 100, true, 500).triggered).toBe(true);
+  });
+
   it('triggers past the grace period', () => {
     expect(stepDangerTimer(1990, 50, true, GRACE).triggered).toBe(true);
   });
@@ -41,6 +46,14 @@ describe('stepDangerTimer', () => {
       timeInDanger: 0,
       triggered: false,
       cleared: true
+    });
+  });
+
+  it('does not clear when decay stops just above zero', () => {
+    expect(stepDangerTimer(100, 66, false, GRACE)).toEqual({
+      timeInDanger: 1,
+      triggered: false,
+      cleared: false
     });
   });
 
