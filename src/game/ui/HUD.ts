@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../../storage/SaveManager';
-import { GAME_CONFIG } from '../config/gameConfig';
+import { LAYOUT } from '../config/gameConfig';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -23,10 +23,11 @@ export class HUD {
 
   private createTopButtons(): void {
     // Top right utility buttons
-    const sfxBtn = this.scene.add.sprite(560, 48, 'ui_btn_circle').setDisplaySize(42, 42);
+    const { Y, SIZE, SOUND_X, MUSIC_X, PAUSE_X } = LAYOUT.HUD.BUTTONS;
+    const sfxBtn = this.scene.add.sprite(SOUND_X, Y, 'ui_btn_circle').setDisplaySize(SIZE, SIZE);
     sfxBtn.setInteractive({ useHandCursor: true });
     this.soundBtnText = this.scene.add
-      .text(560, 48, SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇', {
+      .text(SOUND_X, Y, SaveManager.getInstance().getSoundEnabled() ? '🔊' : '🔇', {
         fontSize: '20px'
       })
       .setOrigin(0.5);
@@ -38,10 +39,10 @@ export class HUD {
       this.soundBtnText.setText(!current ? '🔊' : '🔇');
     });
 
-    const musicBtn = this.scene.add.sprite(614, 48, 'ui_btn_circle').setDisplaySize(42, 42);
+    const musicBtn = this.scene.add.sprite(MUSIC_X, Y, 'ui_btn_circle').setDisplaySize(SIZE, SIZE);
     musicBtn.setInteractive({ useHandCursor: true });
     this.musicBtnText = this.scene.add
-      .text(614, 48, SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫', {
+      .text(MUSIC_X, Y, SaveManager.getInstance().getMusicEnabled() ? '🎵' : '🚫', {
         fontSize: '20px'
       })
       .setOrigin(0.5);
@@ -53,10 +54,10 @@ export class HUD {
       this.musicBtnText.setText(!current ? '🎵' : '🚫');
     });
 
-    const pauseBtn = this.scene.add.sprite(668, 48, 'ui_btn_circle').setDisplaySize(42, 42);
+    const pauseBtn = this.scene.add.sprite(PAUSE_X, Y, 'ui_btn_circle').setDisplaySize(SIZE, SIZE);
     pauseBtn.setInteractive({ useHandCursor: true });
     const pauseIcon = this.scene.add
-      .text(668, 48, '⏸', {
+      .text(PAUSE_X, Y, '⏸', {
         fontSize: '20px',
         color: '#ffffff'
       })
@@ -78,17 +79,24 @@ export class HUD {
   }
 
   private createBottomScoreCards(): void {
-    // 1190 was tuned against the original 1280-tall reference canvas;
-    // rescale so the cards stay anchored near the bottom edge on devices
-    // where GAME_CONFIG.HEIGHT has been stretched taller (see gameConfig.ts).
-    const bottomY = Math.round((1190 / 1280) * GAME_CONFIG.HEIGHT);
+    // Y is scaled from the reference canvas so the cards stay anchored near
+    // the bottom edge on stretched-tall devices (see gameConfig.ts).
+    const {
+      Y: bottomY,
+      WIDTH,
+      HEIGHT,
+      SCORE_X,
+      BEST_X,
+      LABEL_OFFSET_Y,
+      VALUE_OFFSET_Y
+    } = LAYOUT.HUD.SCORE_CARDS;
 
     // 1. Current Score Card (Bottom Left)
-    const scoreBg = this.scene.add.sprite(220, bottomY, 'ui_card_bg');
-    scoreBg.setDisplaySize(200, 72);
+    const scoreBg = this.scene.add.sprite(SCORE_X, bottomY, 'ui_card_bg');
+    scoreBg.setDisplaySize(WIDTH, HEIGHT);
 
     const scoreLabel = this.scene.add
-      .text(220, bottomY - 18, 'SCORE', {
+      .text(SCORE_X, bottomY + LABEL_OFFSET_Y, 'SCORE', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '13px',
         fontStyle: 'bold',
@@ -97,7 +105,7 @@ export class HUD {
       .setOrigin(0.5);
 
     this.scoreText = this.scene.add
-      .text(220, bottomY + 12, '0', {
+      .text(SCORE_X, bottomY + VALUE_OFFSET_Y, '0', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '28px',
         fontStyle: 'bold',
@@ -106,11 +114,11 @@ export class HUD {
       .setOrigin(0.5);
 
     // 2. Best Score Card (Bottom Right)
-    const bestBg = this.scene.add.sprite(500, bottomY, 'ui_card_bg');
-    bestBg.setDisplaySize(200, 72);
+    const bestBg = this.scene.add.sprite(BEST_X, bottomY, 'ui_card_bg');
+    bestBg.setDisplaySize(WIDTH, HEIGHT);
 
     const bestLabel = this.scene.add
-      .text(500, bottomY - 18, 'BEST', {
+      .text(BEST_X, bottomY + LABEL_OFFSET_Y, 'BEST', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '13px',
         fontStyle: 'bold',
@@ -119,7 +127,7 @@ export class HUD {
       .setOrigin(0.5);
 
     this.bestScoreText = this.scene.add
-      .text(500, bottomY + 12, `${SaveManager.getInstance().getBestScore()}`, {
+      .text(BEST_X, bottomY + VALUE_OFFSET_Y, `${SaveManager.getInstance().getBestScore()}`, {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '28px',
         fontStyle: 'bold',
