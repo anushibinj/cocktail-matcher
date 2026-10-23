@@ -16,8 +16,9 @@ export interface E2eHelpers {
   /** The modal's text object with exactly `text`, if any. */
   modalText(text: string): { alpha: number; visible: boolean; aboveCard: boolean } | null;
   /**
-   * Fires `pointerdown` on the topmost interactive object at game point
-   * (x, y), like a tap but within this frame (no input latency).
+   * Fires `pointerdown` then `pointerup` on the topmost interactive object
+   * at game point (x, y), like a tap but within this frame (no input
+   * latency). UIButtons activate on the release.
    */
   press(x: number, y: number): boolean;
   /** Presses the modal control labelled `text`, at any pop-in scale. */
@@ -110,7 +111,9 @@ export function installE2eHelpers(): void {
         };
         (scene.children.list as Obj[]).forEach(walk);
         const top = hits.reduce((a, b) => (order.indexOf(b) > order.indexOf(a) ? b : a));
-        top.emit('pointerdown', input.activePointer, 0, 0, { stopPropagation() {} });
+        const event = { stopPropagation() {} };
+        top.emit('pointerdown', input.activePointer, 0, 0, event);
+        top.emit('pointerup', input.activePointer, 0, 0, event);
         return true;
       }
       return false;
