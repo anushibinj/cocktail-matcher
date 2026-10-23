@@ -234,8 +234,12 @@ export class GameScene extends Phaser.Scene {
     });
     this.frozenTweens = [];
     this.time.paused = false;
-    // Only resume a paused world: resume() restarts the runner's tick clock,
-    // which stalls a fresh world (the setPhase('playing') in create()).
+    // Only resume a paused world. resume() resets runner.timeLastTick, and on
+    // a world that hasn't stepped yet (the setPhase('playing') in create())
+    // the first step then sees a negative frame delta. That poisons Matter's
+    // frame-delta smoothing with NaN until its 100-frame history flushes, so
+    // no body moves for 100 frames (~1.7 s at 60 fps, far longer on slow
+    // devices).
     if (!this.matter.world.enabled) {
       this.matter.world.resume();
     }
