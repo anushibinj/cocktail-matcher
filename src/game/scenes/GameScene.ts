@@ -230,7 +230,11 @@ export class GameScene extends Phaser.Scene {
     });
     this.frozenTweens = [];
     this.time.paused = false;
-    this.matter.world.resume();
+    // Only resume a paused world: resume() restarts the runner's tick clock,
+    // which stalls a fresh world (the setPhase('playing') in create()).
+    if (!this.matter.world.enabled) {
+      this.matter.world.resume();
+    }
   }
 
   private restartGame(): void {
