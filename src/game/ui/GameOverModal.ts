@@ -38,26 +38,30 @@ export class GameOverModal {
     cardBg.strokeRoundedRect(-240, -220, 480, 440, 24);
 
     // Header Title
-    const titleText = this.scene.add.text(0, -165, 'GAME OVER', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '40px',
-      fontStyle: 'bold',
-      color: '#ff4d6d',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0.5);
+    const titleText = this.scene.add
+      .text(0, -165, 'GAME OVER', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '40px',
+        fontStyle: 'bold',
+        color: '#ff4d6d',
+        stroke: '#000000',
+        strokeThickness: 4
+      })
+      .setOrigin(0.5);
 
     // New Best Badge (added to cardGroup after cardBg so it renders on top)
     let newBestBadge: Phaser.GameObjects.Text | undefined;
     if (isNewBest) {
-      newBestBadge = this.scene.add.text(0, -115, '🏆 NEW BEST SCORE! 🏆', {
-        fontFamily: 'Segoe UI, system-ui, sans-serif',
-        fontSize: '20px',
-        fontStyle: 'bold',
-        color: '#ffd166',
-        stroke: '#000000',
-        strokeThickness: 3
-      }).setOrigin(0.5);
+      newBestBadge = this.scene.add
+        .text(0, -115, '🏆 NEW BEST SCORE! 🏆', {
+          fontFamily: 'Segoe UI, system-ui, sans-serif',
+          fontSize: '20px',
+          fontStyle: 'bold',
+          color: '#ffd166',
+          stroke: '#000000',
+          strokeThickness: 3
+        })
+        .setOrigin(0.5);
 
       this.scene.tweens.add({
         targets: newBestBadge,
@@ -70,39 +74,47 @@ export class GameOverModal {
     }
 
     // Score Label & Value
-    const scoreLabel = this.scene.add.text(0, isNewBest ? -75 : -100, 'YOUR SCORE', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '16px',
-      fontStyle: 'bold',
-      color: '#8ecae6'
-    }).setOrigin(0.5);
+    const scoreLabel = this.scene.add
+      .text(0, isNewBest ? -75 : -100, 'YOUR SCORE', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '16px',
+        fontStyle: 'bold',
+        color: '#8ecae6'
+      })
+      .setOrigin(0.5);
 
-    const scoreValue = this.scene.add.text(0, isNewBest ? -35 : -55, `${score}`, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '48px',
-      fontStyle: 'bold',
-      color: '#ffffff',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0.5);
+    const scoreValue = this.scene.add
+      .text(0, isNewBest ? -35 : -55, `${score}`, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '48px',
+        fontStyle: 'bold',
+        color: '#ffffff',
+        stroke: '#000000',
+        strokeThickness: 4
+      })
+      .setOrigin(0.5);
 
     // Best Score
-    const bestValue = this.scene.add.text(0, isNewBest ? 15 : 5, `Best Score: ${bestScore}`, {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '20px',
-      color: '#ffd166'
-    }).setOrigin(0.5);
+    const bestValue = this.scene.add
+      .text(0, isNewBest ? 15 : 5, `Best Score: ${bestScore}`, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '20px',
+        color: '#ffd166'
+      })
+      .setOrigin(0.5);
 
     // Play Again Button
     const playAgainBtn = this.scene.add.sprite(0, 95, 'ui_btn_primary').setDisplaySize(260, 68);
     playAgainBtn.setInteractive({ useHandCursor: true });
 
-    const playAgainText = this.scene.add.text(0, 95, 'PLAY AGAIN', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#ffffff'
-    }).setOrigin(0.5);
+    const playAgainText = this.scene.add
+      .text(0, 95, 'PLAY AGAIN', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '22px',
+        fontStyle: 'bold',
+        color: '#ffffff'
+      })
+      .setOrigin(0.5);
 
     playAgainBtn.on('pointerover', () => playAgainBtn.setScale(1.05));
     playAgainBtn.on('pointerout', () => playAgainBtn.setScale(1.0));
@@ -114,11 +126,13 @@ export class GameOverModal {
     });
 
     // Main Menu Button
-    const menuBtn = this.scene.add.text(0, 170, 'Main Menu', {
-      fontFamily: 'Segoe UI, system-ui, sans-serif',
-      fontSize: '18px',
-      color: '#a0a0c0'
-    }).setOrigin(0.5);
+    const menuBtn = this.scene.add
+      .text(0, 170, 'Main Menu', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '18px',
+        color: '#a0a0c0'
+      })
+      .setOrigin(0.5);
     menuBtn.setInteractive({ useHandCursor: true });
 
     menuBtn.on('pointerover', () => menuBtn.setColor('#ffffff'));
@@ -129,7 +143,16 @@ export class GameOverModal {
       this.onMenu();
     });
 
-    cardGroup.add([cardBg, titleText, scoreLabel, scoreValue, bestValue, playAgainBtn, playAgainText, menuBtn]);
+    cardGroup.add([
+      cardBg,
+      titleText,
+      scoreLabel,
+      scoreValue,
+      bestValue,
+      playAgainBtn,
+      playAgainText,
+      menuBtn
+    ]);
     if (newBestBadge) {
       cardGroup.add(newBestBadge);
     }

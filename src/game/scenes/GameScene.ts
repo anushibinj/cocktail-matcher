@@ -92,9 +92,13 @@ export class GameScene extends Phaser.Scene {
     this.orderManager.init();
 
     // 6. Game Over Manager
-    this.gameOverManager = new GameOverManager(this.board, () => this.isPlaying(), () => {
-      this.handleGameOver();
-    });
+    this.gameOverManager = new GameOverManager(
+      this.board,
+      () => this.isPlaying(),
+      () => {
+        this.handleGameOver();
+      }
+    );
 
     // 7. HUD
     this.hud = new HUD(this, () => {
@@ -179,7 +183,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.isPlaying()) return;
 
     // Filter out destroyed or inactive drinks
-    this.droppedDrinks = this.droppedDrinks.filter(d => d && d.active && !d.isMerging);
+    this.droppedDrinks = this.droppedDrinks.filter((d) => d && d.active && !d.isMerging);
 
     // Check To-Go Orders fulfillment
     this.orderManager.checkForMatchingOrders(this.droppedDrinks);
@@ -220,12 +224,12 @@ export class GameScene extends Phaser.Scene {
     this.time.paused = true;
     // A merge shake would otherwise play out under the modal, shaking it too
     this.cameras.main.shakeEffect.reset();
-    this.frozenTweens = this.tweens.getTweens().filter(t => t.isPlaying());
-    this.frozenTweens.forEach(t => t.pause());
+    this.frozenTweens = this.tweens.getTweens().filter((t) => t.isPlaying());
+    this.frozenTweens.forEach((t) => t.pause());
   }
 
   private unfreezeGameplay(): void {
-    this.frozenTweens.forEach(t => {
+    this.frozenTweens.forEach((t) => {
       if (!t.isDestroyed()) t.resume();
     });
     this.frozenTweens = [];
@@ -259,7 +263,7 @@ export class GameScene extends Phaser.Scene {
     // instead of resuming them over the new board. Skip tweens that a reset
     // above already removed: complete() would still fire their onComplete,
     // e.g. a cancelled checkout's reward.
-    this.frozenTweens.forEach(t => {
+    this.frozenTweens.forEach((t) => {
       if (this.tweens.has(t) && t.isActive()) t.complete();
     });
     this.frozenTweens = [];
@@ -297,15 +301,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Read-only snapshot of run state for tests. */
-  public debugGetState(): { phase: GamePhase; isGameActive: boolean; score: number; bestScore: number; drinks: { level: number; x: number; y: number }[] } {
+  public debugGetState(): {
+    phase: GamePhase;
+    isGameActive: boolean;
+    score: number;
+    bestScore: number;
+    drinks: { level: number; x: number; y: number }[];
+  } {
     return {
       phase: this.phase,
       isGameActive: this.isPlaying(),
       score: this.scoreManager.getScore(),
       bestScore: this.scoreManager.getBestScore(),
       drinks: this.droppedDrinks
-        .filter(d => d.active && !d.isMerging)
-        .map(d => ({ level: d.level, x: d.x, y: d.y }))
+        .filter((d) => d.active && !d.isMerging)
+        .map((d) => ({ level: d.level, x: d.x, y: d.y }))
     };
   }
 
