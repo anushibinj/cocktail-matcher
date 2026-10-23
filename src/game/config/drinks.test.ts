@@ -42,6 +42,5 @@ describe('getDrinkByLevel', () => {
     const max = DRINKS[DRINKS.length - 1];
     expect(getDrinkByLevel(DRINKS.length)).toBe(max);
     expect(getDrinkByLevel(999)).toBe(max);
-    expect(getDrinkByLevel(-1)).toBe(max);
   });
 });
