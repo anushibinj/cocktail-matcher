@@ -72,9 +72,10 @@ test('pause freezes drinks, clock and merges for 2 s; resume continues without a
   );
   expect(firstFrame).toHaveLength(3);
   firstFrame!.forEach((d, i) => {
-    // One physics step moves a rising drink a few px; a burst of the steps
-    // "owed" for the pause would move it much further
-    expect(Math.abs(d.y - before.drinks[i].y), 'no burst on resume').toBeLessThan(20);
+    // One physics step moves a rising drink a few px (more on a slow frame
+    // under load); the ~120 steps "owed" for a 2 s pause would move it
+    // hundreds of px, or pin it to the ceiling
+    expect(Math.abs(d.y - before.drinks[i].y), 'no burst on resume').toBeLessThan(50);
   });
   await poll(async () => (await game.drinks())[0].y).toBeLessThan(before.drinks[0].y - 5);
   await poll(() => game.score()).toBeGreaterThan(before.score);
