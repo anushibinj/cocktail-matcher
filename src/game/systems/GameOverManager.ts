@@ -2,6 +2,7 @@ import { Drink } from '../entities/Drink';
 import { Board } from '../entities/Board';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { AudioManager } from './AudioManager';
+import { stepDangerTimer } from './dangerTimer';
 
 export class GameOverManager {
   private board: Board;
@@ -42,20 +43,22 @@ export class GameOverManager {
       }
     }
 
+    const step = stepDangerTimer(
+      this.timeInDanger,
+      delta,
+      hasDrinkInDanger,
+      GAME_CONFIG.DANGER_GRACE_PERIOD_MS
+    );
+    this.timeInDanger = step.timeInDanger;
+
     if (hasDrinkInDanger) {
-      this.timeInDanger += delta;
       this.board.setDangerState(true);
 
-      if (this.timeInDanger >= GAME_CONFIG.DANGER_GRACE_PERIOD_MS) {
+      if (step.triggered) {
         this.triggerGameOver();
       }
-    } else {
-      if (this.timeInDanger > 0) {
-        this.timeInDanger = Math.max(0, this.timeInDanger - delta * 1.5);
-        if (this.timeInDanger === 0) {
-          this.board.setDangerState(false);
-        }
-      }
+    } else if (step.cleared) {
+      this.board.setDangerState(false);
     }
   }
 
