@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, LAYOUT } from '../config/gameConfig';
 import { AudioManager } from '../systems/AudioManager';
+import { UIButton } from './components/UIButton';
 
 export class GameOverModal {
   private scene: Phaser.Scene;
@@ -112,57 +113,32 @@ export class GameOverModal {
       .setOrigin(0.5);
 
     // Play Again Button
-    const playAgainBtn = this.scene.add
-      .sprite(0, PLAY_AGAIN_BUTTON.Y, 'ui_btn_primary')
-      .setDisplaySize(PLAY_AGAIN_BUTTON.WIDTH, PLAY_AGAIN_BUTTON.HEIGHT);
-    playAgainBtn.setInteractive({ useHandCursor: true });
-
-    const playAgainText = this.scene.add
-      .text(0, PLAY_AGAIN_BUTTON.Y, 'PLAY AGAIN', {
-        fontFamily: 'Segoe UI, system-ui, sans-serif',
-        fontSize: '22px',
-        fontStyle: 'bold',
-        color: '#ffffff'
-      })
-      .setOrigin(0.5);
-
-    playAgainBtn.on('pointerover', () => playAgainBtn.setScale(1.05));
-    playAgainBtn.on('pointerout', () => playAgainBtn.setScale(1.0));
-    playAgainBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
+    const playAgainBtn = new UIButton(this.scene, 0, PLAY_AGAIN_BUTTON.Y, {
+      variant: 'primary',
+      width: PLAY_AGAIN_BUTTON.WIDTH,
+      height: PLAY_AGAIN_BUTTON.HEIGHT,
+      text: 'PLAY AGAIN',
+      label: 'Play again',
+      textStyle: { fontSize: '22px' }
+    });
+    playAgainBtn.on(UIButton.EVENTS.ACTIVATE, () => {
       AudioManager.getInstance().playRestart();
       this.hide();
       this.onRestart();
     });
 
     // Main Menu Button
-    const menuBtn = this.scene.add
-      .text(0, MENU_Y, 'Main Menu', {
-        fontFamily: 'Segoe UI, system-ui, sans-serif',
-        fontSize: '18px',
-        color: '#a0a0c0'
-      })
-      .setOrigin(0.5);
-    menuBtn.setInteractive({ useHandCursor: true });
-
-    menuBtn.on('pointerover', () => menuBtn.setColor('#ffffff'));
-    menuBtn.on('pointerout', () => menuBtn.setColor('#a0a0c0'));
-    menuBtn.on('pointerdown', () => {
-      AudioManager.getInstance().playButtonClick();
+    const menuBtn = new UIButton(this.scene, 0, MENU_Y, {
+      variant: 'secondary',
+      text: 'Main Menu',
+      textStyle: { fontSize: '18px' }
+    });
+    menuBtn.on(UIButton.EVENTS.ACTIVATE, () => {
       this.hide();
       this.onMenu();
     });
 
-    cardGroup.add([
-      cardBg,
-      titleText,
-      scoreLabel,
-      scoreValue,
-      bestValue,
-      playAgainBtn,
-      playAgainText,
-      menuBtn
-    ]);
+    cardGroup.add([cardBg, titleText, scoreLabel, scoreValue, bestValue, playAgainBtn, menuBtn]);
     if (newBestBadge) {
       cardGroup.add(newBestBadge);
     }

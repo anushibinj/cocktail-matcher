@@ -272,7 +272,7 @@ export class GameDriver {
   async hudIcons(): Promise<{ sound: string; music: string }> {
     return this.page.evaluate(() => {
       const hud = window.__COCKTAIL__!.getScene()!['hud'];
-      return { sound: hud['soundBtnText'].text, music: hud['musicBtnText'].text };
+      return { sound: hud['soundToggle'].displayText, music: hud['musicToggle'].displayText };
     });
   }
 

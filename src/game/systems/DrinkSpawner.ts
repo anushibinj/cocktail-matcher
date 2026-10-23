@@ -76,9 +76,8 @@ export class DrinkSpawner {
     this.scene.input.on(
       'pointerdown',
       (pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
-        // Phaser emits a button's own pointerdown before this scene-wide one,
-        // so a button that just resumed play (Resume, Play Again)
-        // still shows up in currentlyOver here and must not arm a launch.
+        // A press that starts on a button or modal backdrop must not arm a
+        // launch (UIButtons act on its release, which never launches).
         if (this.isOtherArmedPointerDown(pointer)) return;
         // Any arm left at this point is stale (its release was lost), so drop
         // it before the button check; otherwise this press's release would

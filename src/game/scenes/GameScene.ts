@@ -116,8 +116,7 @@ export class GameScene extends Phaser.Scene {
       this,
       () => this.resumeGame(),
       () => this.restartGame(),
-      () => this.goToMenu(),
-      () => this.hud.updateAudioIcons()
+      () => this.goToMenu()
     );
 
     // 9. Drink Spawner
