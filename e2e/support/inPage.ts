@@ -20,6 +20,8 @@ export interface E2eHelpers {
    * (x, y), like a tap but within this frame (no input latency).
    */
   press(x: number, y: number): boolean;
+  /** Presses the modal control labelled `text`, at any pop-in scale. */
+  pressModalText(text: string): boolean;
 }
 
 declare global {
@@ -101,6 +103,14 @@ export function installE2eHelpers(): void {
         return true;
       }
       return false;
+    },
+
+    pressModalText(text) {
+      const m = findModal();
+      const t = m && texts(m.root, []).find(o => o.text === text);
+      if (!t) return false;
+      const b = (t as unknown as Phaser.GameObjects.Components.GetBounds).getBounds();
+      return window.__e2e.press(b.centerX, b.centerY);
     }
   };
 }

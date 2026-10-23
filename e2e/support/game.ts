@@ -7,6 +7,14 @@ export type { CocktailDebugApi } from '../../src/debug';
 // layout or internals lives here, so a layout change (ARCH001/ARCH004) or a
 // state refactor (ARCH002) only needs this file updated, not every spec.
 
+/**
+ * expect.poll with short, flat intervals: the default backoff grows to 1 s,
+ * which adds up fast when every step waits on game state.
+ */
+export function poll<T>(fn: () => Promise<T>, options: { message?: string; timeout?: number } = {}) {
+  return expect.poll(fn, { intervals: [50, 100, 150, 200], ...options });
+}
+
 /** Virtual canvas width; the height depends on the viewport (see gameConfig.ts). */
 export const GAME_WIDTH = 720;
 
@@ -93,8 +101,7 @@ export class GameDriver {
   }
 
   async waitForMenu(): Promise<void> {
-    await expect
-      .poll(() => this.page.evaluate(() => !!window.__COCKTAIL__?.game.scene.isActive('MenuScene')), {
+    await poll(() => this.page.evaluate(() => !!window.__COCKTAIL__?.game.scene.isActive('MenuScene')), {
         timeout: 20_000
       })
       .toBe(true);
@@ -114,7 +121,7 @@ export class GameDriver {
   /** Taps PLAY and waits until the first drink can be launched. */
   async startGame(): Promise<void> {
     await this.tap(this.ui.menuPlay);
-    await expect.poll(() => this.page.evaluate(() => !!window.__COCKTAIL__!.getScene())).toBe(true);
+    await poll(() => this.page.evaluate(() => !!window.__COCKTAIL__!.getScene())).toBe(true);
     await this.waitReadyToLaunch();
   }
 
@@ -147,11 +154,10 @@ export class GameDriver {
     const a = await this.toCss(from);
     const b = await this.toCss(to);
     if (this.touch) {
+      // Each CDP touch event waits for a rendered frame, so keep moves few
       await this.touchEvent('touchStart', [{ ...a, id: 0 }]);
-      for (let i = 1; i <= 5; i++) {
-        const t = i / 5;
-        await this.touchEvent('touchMove', [{ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, id: 0 }]);
-      }
+      await this.touchEvent('touchMove', [{ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, id: 0 }]);
+      await this.touchEvent('touchMove', [{ ...b, id: 0 }]);
       await this.touchEvent('touchEnd', []);
     } else {
       await this.page.mouse.move(a.x, a.y);
@@ -273,8 +279,7 @@ export class GameDriver {
   /** Waits until the game loop has rendered `frames` more frames. */
   async waitFrames(frames: number): Promise<void> {
     const start = await this.page.evaluate(() => window.__COCKTAIL__!.game.loop.frame);
-    await expect
-      .poll(() => this.page.evaluate(() => window.__COCKTAIL__!.game.loop.frame), {
+    await poll(() => this.page.evaluate(() => window.__COCKTAIL__!.game.loop.frame), {
         timeout: 20_000 + frames * 50
       })
       .toBeGreaterThanOrEqual(start + frames);
@@ -282,15 +287,13 @@ export class GameDriver {
 
   /** Waits until a tap on the board would launch: enabled, no cooldown, preview fully popped in. */
   async waitReadyToLaunch(): Promise<void> {
-    await expect
-      .poll(async () => {
+    await poll(async () => {
         const s = await this.spawner();
         return s.isEnabled && !s.isCoolingDown && s.previewVisible && s.previewScale > 0.5;
       })
       .toBe(true);
     // The pop-in tween eases past its target; let it settle
-    await expect
-      .poll(() =>
+    await poll(() =>
         this.page.evaluate(() => {
           const scene = window.__COCKTAIL__!.getScene()!;
           return scene.tweens.getTweens().some(t => t.targets.includes(scene['spawner']['previewSprite']));
@@ -303,7 +306,7 @@ export class GameDriver {
   async launchAt(x: number): Promise<void> {
     const before = await this.launches();
     await this.tap(this.ui.board(x));
-    await expect.poll(() => this.launches()).toBe(before + 1);
+    await poll(() => this.launches()).toBe(before + 1);
   }
 
   /** Slows (or restores, with 1) the scene clock, which drives the drop cooldown. */
@@ -338,8 +341,7 @@ export class GameDriver {
 
   /** Waits for the modal titled `title` to finish popping in, so its buttons take taps. */
   async waitForModal(title: 'GAME PAUSED' | 'GAME OVER'): Promise<ModalSnapshot> {
-    await expect
-      .poll(async () => {
+    await poll(async () => {
         const m = await this.modal();
         return !!m && m.ready && m.texts.includes(title);
       })
@@ -348,7 +350,7 @@ export class GameDriver {
   }
 
   async waitForNoModal(): Promise<void> {
-    await expect.poll(() => this.modal()).toBeNull();
+    await poll(() => this.modal()).toBeNull();
   }
 
   /** Taps the HUD pause button and waits for the pause modal to be ready. */
@@ -371,11 +373,16 @@ interface Fixtures {
   game: GameDriver;
   /** Console errors, page errors and failed requests seen so far; each test must end with none. */
   pageProblems: string[];
+  /** Patterns a test expects among pageProblems (push to it); anything else still fails the test. */
+  allowedProblems: RegExp[];
 }
 
 export const test = base.extend<Fixtures>({
+  allowedProblems: async ({}, use) => {
+    await use([]);
+  },
   pageProblems: [
-    async ({ page }, use) => {
+    async ({ page, allowedProblems }, use) => {
       const problems: string[] = [];
       page.on('console', msg => {
         if (msg.type() === 'error') problems.push(`console.error: ${msg.text()}`);
@@ -389,7 +396,8 @@ export const test = base.extend<Fixtures>({
         if (req.resourceType() !== 'media') problems.push(`request failed: ${req.url()} ${req.failure()?.errorText}`);
       });
       await use(problems);
-      expect(problems, 'console errors, page errors or failed requests').toEqual([]);
+      const unexpected = problems.filter(p => !allowedProblems.some(re => re.test(p)));
+      expect(unexpected, 'console errors, page errors or failed requests').toEqual([]);
     },
     { auto: true }
   ],

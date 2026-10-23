@@ -11,7 +11,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  timeout: 45_000,
+  // Swiftshader renders the game at ~6-10 fps under parallel load, and every
+  // input event waits for a frame, so a scenario takes many seconds
+  timeout: 90_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
