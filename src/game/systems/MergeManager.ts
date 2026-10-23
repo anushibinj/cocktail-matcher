@@ -3,6 +3,7 @@ import { Drink } from '../entities/Drink';
 import { ScoreManager } from './ScoreManager';
 import { AudioManager } from './AudioManager';
 import { DRINKS, getDrinkByLevel } from '../config/drinks';
+import { canMerge } from './mergeRules';
 
 export class MergeManager {
   private scene: Phaser.Scene;
@@ -117,21 +118,8 @@ export class MergeManager {
   }
 
   private handleDrinkCollision(d1: Drink, d2: Drink): void {
-    // Both must be active, dropped, not already merging, and same level
-    if (
-      d1.isMerging ||
-      d2.isMerging ||
-      !d1.isDropped ||
-      !d2.isDropped ||
-      !d1.active ||
-      !d2.active ||
-      d1.level !== d2.level
-    ) {
-      return;
-    }
-
-    // Maximum level reached?
-    if (d1.level >= DRINKS.length - 1) {
+    // Both must be active, dropped, not already merging, same level, and below the max tier
+    if (!canMerge(d1, d2, DRINKS.length - 1)) {
       return;
     }
 

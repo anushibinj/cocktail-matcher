@@ -25,6 +25,8 @@ dist-ssr
 
 # Firebase
 .firebase
+# Test coverage
+coverage
 # Playwright
 test-results/
 playwright-report/

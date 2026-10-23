@@ -22,10 +22,14 @@ pnpm run typecheck    # tsc --noEmit only
 pnpm run lint         # ESLint (flat config, typescript-eslint with type-aware rules); warnings allowed, errors fail
 pnpm run format       # Prettier --write on src/**/*.ts, e2e/**/*.ts and the root config files
 pnpm run format:check # Prettier --check on the same files
+pnpm test             # Vitest unit tests for the pure game rules (node env, no Phaser boot)
+pnpm run test:coverage  # same, with v8 coverage (fails if any rule module is under 90% lines)
 pnpm test:e2e         # typecheck e2e/, build, serve with vite preview, run the Playwright suite (~1.5 min)
 ```
 
-Before committing, run `pnpm run format`, `pnpm run lint`, `pnpm run build` (which runs `tsc` with `noEmit`, so it also covers `typecheck`) and, for gameplay changes, `pnpm test:e2e`; `tsconfig.json` has `strict`, `noUnusedLocals`, and `noUnusedParameters` enabled. ESLint config lives in `eslint.config.js`, Prettier config in `.prettierrc.json` (single quotes, semicolons, no trailing commas, 100 columns). Prettier deliberately skips Markdown, lockfiles and `public/` (`.prettierignore`).
+Before committing, run `pnpm run format`, `pnpm run lint`, `pnpm test`, `pnpm run build` (which runs `tsc` with `noEmit`, so it also covers `typecheck`) and, for gameplay changes, `pnpm test:e2e`; `tsconfig.json` has `strict`, `noUnusedLocals`, and `noUnusedParameters` enabled. ESLint config lives in `eslint.config.js`, Prettier config in `.prettierrc.json` (single quotes, semicolons, no trailing commas, 100 columns). Prettier deliberately skips Markdown, lockfiles and `public/` (`.prettierignore`).
+
+Unit tests live next to their modules as `src/**/*.test.ts` and cover only pure logic (`spawnPicker`, `mergeRules`, `dangerTimer`, `drinks`, `SaveManager`, `ScoreManager`); keep game rules in small pure functions the Phaser classes call, so they stay testable without booting Phaser. `src/test/storage.ts` has a stub `localStorage` and a `SaveManager` singleton reset.
 
 **E2E suite** (`e2e/`, `playwright.config.ts`): Playwright drives the production build through the debug hook at 390×844 touch (`phone-touch`) and 1440×900 mouse (`desktop-mouse`); `webgl-*` projects re-run only `boot.spec.ts`. The gameplay projects launch Chromium with `--disable-webgl`, so Phaser picks its Canvas renderer: headless SwiftShader WebGL renders a busy board at ~2 fps. `@playwright/test` is pinned to 1.56.1 to match the preinstalled Chromium (`/opt/pw-browsers`); never run `playwright install`. Every on-canvas coordinate and every read of game internals lives in `e2e/support/game.ts` (driver) and `e2e/support/inPage.ts` (in-page helpers), so a layout or state refactor updates those two files, not the specs. Every test fails on any console error, page error or 4xx response. Detect launches with `getLaunchCount()`, never by counting drinks (merges and order checkouts remove them), and poll state with the `poll()` helper instead of fixed sleeps.
 
