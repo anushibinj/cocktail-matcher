@@ -6,6 +6,9 @@ import { getDrinkByLevel } from '../config/drinks';
 import { gameRandom, pickWeightedLevel } from './spawnPicker';
 
 export class DrinkSpawner {
+  /** Drinks launched since page load, across games (read by the debug hook). */
+  public static launchCount: number = 0;
+
   private scene: Phaser.Scene;
   private previewSprite: Phaser.GameObjects.Sprite;
   private guidanceGfx: Phaser.GameObjects.Graphics;
@@ -160,6 +163,7 @@ export class DrinkSpawner {
       this.currentLevel
     );
     drink.setVelocity(0, -3.2); // Smooth controlled glide up the table
+    DrinkSpawner.launchCount++;
 
     AudioManager.getInstance().playDrop();
 
