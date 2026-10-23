@@ -61,6 +61,24 @@ describe('SaveManager load', () => {
     expect(save.getHighestDrinkUnlocked()).toBe(6);
   });
 
+  it('restores non-default settings alongside a best score of 0', () => {
+    const saved = {
+      ...DEFAULTS,
+      soundEnabled: false,
+      musicEnabled: false,
+      totalGamesPlayed: 3,
+      highestDrinkUnlocked: 4
+    };
+    storage.setItem(KEY, JSON.stringify(saved));
+    const save = SaveManager.getInstance();
+    expect(save.getBestScore()).toBe(0);
+    expect(save.getSoundEnabled()).toBe(false);
+    expect(save.getMusicEnabled()).toBe(false);
+    expect(save.getHighestDrinkUnlocked()).toBe(4);
+    save.recordGamePlayed(0);
+    expect(stored()).toEqual({ ...saved, totalGamesPlayed: 4 });
+  });
+
   it('merges an old save missing newer fields over the defaults', () => {
     storage.setItem(KEY, JSON.stringify({ bestScore: 900 }));
     const save = SaveManager.getInstance();
@@ -137,6 +155,20 @@ describe('SaveManager best score', () => {
 });
 
 describe('SaveManager settings and progress', () => {
+  it.each([
+    ['setBestScore', (s: SaveManager) => s.setBestScore(10), { bestScore: 10 }],
+    ['setSoundEnabled', (s: SaveManager) => s.setSoundEnabled(false), { soundEnabled: false }],
+    ['setMusicEnabled', (s: SaveManager) => s.setMusicEnabled(false), { musicEnabled: false }],
+    [
+      'recordGamePlayed',
+      (s: SaveManager) => s.recordGamePlayed(2),
+      { totalGamesPlayed: 1, highestDrinkUnlocked: 2 }
+    ]
+  ])('%s persists on its own', (_name, write, change) => {
+    write(SaveManager.getInstance());
+    expect(stored()).toEqual({ ...DEFAULTS, ...change });
+  });
+
   it('persists sound and music toggles', () => {
     const save = SaveManager.getInstance();
     save.setSoundEnabled(false);
