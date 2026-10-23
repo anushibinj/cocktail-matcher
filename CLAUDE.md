@@ -22,9 +22,13 @@ pnpm run typecheck    # tsc --noEmit only
 pnpm run lint         # ESLint (flat config, typescript-eslint with type-aware rules); warnings allowed, errors fail
 pnpm run format       # Prettier --write on src/**/*.ts and the root config files
 pnpm run format:check # Prettier --check on the same files
+pnpm test             # Vitest unit tests for the pure game rules (node env, no Phaser boot)
+pnpm run test:coverage  # same, with v8 coverage (fails if any rule module is under 90% lines)
 ```
 
-There is no test suite. Before committing, run `pnpm run format`, `pnpm run lint` and `pnpm run build` (which runs `tsc` with `noEmit`, so it also covers `typecheck`); `tsconfig.json` has `strict`, `noUnusedLocals`, and `noUnusedParameters` enabled. ESLint config lives in `eslint.config.js`, Prettier config in `.prettierrc.json` (single quotes, semicolons, no trailing commas, 100 columns). Prettier deliberately skips Markdown, lockfiles and `public/` (`.prettierignore`).
+Before committing, run `pnpm run format`, `pnpm run lint`, `pnpm test` and `pnpm run build` (which runs `tsc` with `noEmit`, so it also covers `typecheck`); `tsconfig.json` has `strict`, `noUnusedLocals`, and `noUnusedParameters` enabled. ESLint config lives in `eslint.config.js`, Prettier config in `.prettierrc.json` (single quotes, semicolons, no trailing commas, 100 columns). Prettier deliberately skips Markdown, lockfiles and `public/` (`.prettierignore`).
+
+Unit tests live next to their modules as `src/**/*.test.ts` and cover only pure logic (`spawnPicker`, `mergeRules`, `dangerTimer`, `drinks`, `SaveManager`, `ScoreManager`); keep game rules in small pure functions the Phaser classes call, so they stay testable without booting Phaser. `src/test/storage.ts` has a stub `localStorage` and a `SaveManager` singleton reset.
 
 **Debug/test hook** (`src/debug.ts`): in `pnpm run dev`, or any build opened with `?debug=1`, `window.__COCKTAIL__` exposes `game`, `getScene()`, `getState()`, `spawnDrink(level, x, y)`, `setScore(n)`, `forceGameOver()`, `setSeed(n | null)` (seeds the spawner/order RNG in `systems/spawnPicker.ts` and restarts a running game) and `toggleMatterDebug()` (also the `` ` `` key). Production without the flag never loads it. Keep it test-only: no in-game developer UI.
 
