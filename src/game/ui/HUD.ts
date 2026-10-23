@@ -9,6 +9,8 @@ export class HUD {
   private container: Phaser.GameObjects.Container;
   private scoreText!: Phaser.GameObjects.Text;
   private bestScoreText!: Phaser.GameObjects.Text;
+  private soundToggle!: UIToggle;
+  private musicToggle!: UIToggle;
   private onPauseClicked: () => void;
 
   constructor(scene: Phaser.Scene, onPauseClicked: () => void) {
@@ -24,7 +26,7 @@ export class HUD {
     // Top right utility buttons
     const iconSize = { width: 42, height: 42 };
 
-    const soundToggle = new UIToggle(this.scene, 560, 48, {
+    this.soundToggle = new UIToggle(this.scene, 560, 48, {
       variant: 'icon',
       ...iconSize,
       setting: SOUND_SETTING,
@@ -33,7 +35,7 @@ export class HUD {
       label: 'Sound effects'
     });
 
-    const musicToggle = new UIToggle(this.scene, 614, 48, {
+    this.musicToggle = new UIToggle(this.scene, 614, 48, {
       variant: 'icon',
       ...iconSize,
       setting: MUSIC_SETTING,
@@ -50,7 +52,7 @@ export class HUD {
     });
     pauseBtn.on(UIButton.EVENTS.ACTIVATE, () => this.onPauseClicked());
 
-    this.container.add([soundToggle, musicToggle, pauseBtn]);
+    this.container.add([this.soundToggle, this.musicToggle, pauseBtn]);
   }
 
   private createBottomScoreCards(): void {

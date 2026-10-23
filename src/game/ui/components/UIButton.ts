@@ -187,6 +187,11 @@ export class UIButton extends Phaser.GameObjects.Container {
     return this;
   }
 
+  /** The text or glyph currently shown. */
+  public get displayText(): string {
+    return this.labelText.text;
+  }
+
   /** Accessible name for assistive tech. */
   public get accessibleLabel(): string {
     return this.confirming && this.confirmConfig
