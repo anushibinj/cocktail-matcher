@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GAME_CONFIG } from '../config/gameConfig';
 import { DRINKS } from '../config/drinks';
 import {
@@ -83,6 +83,12 @@ describe('pickIntInclusive', () => {
     expect(pickIntInclusive(2, 5, fixed(0.999999))).toBe(5);
   });
 
+  it('steps up exactly at an interior boundary', () => {
+    expect(pickIntInclusive(2, 5, fixed(0.2499))).toBe(2);
+    expect(pickIntInclusive(2, 5, fixed(0.25))).toBe(3);
+    expect(pickIntInclusive(2, 5, fixed(0.5))).toBe(4);
+  });
+
   it('returns min when min === max', () => {
     expect(pickIntInclusive(4, 4, fixed(0.7))).toBe(4);
   });
@@ -106,7 +112,10 @@ describe('mulberry32', () => {
 });
 
 describe('gameRandom / setGameSeed', () => {
-  afterEach(() => setGameSeed(null));
+  afterEach(() => {
+    vi.restoreAllMocks();
+    setGameSeed(null);
+  });
 
   it('replays the same sequence after re-seeding', () => {
     setGameSeed(99);
@@ -120,10 +129,19 @@ describe('gameRandom / setGameSeed', () => {
     expect(gameRandom()).toBe(mulberry32(5)());
   });
 
+  it('treats seed 0 as a real seed, not as "unseeded"', () => {
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    setGameSeed(0);
+    expect(gameRandom()).toBe(mulberry32(0)());
+    expect(random).not.toHaveBeenCalled();
+  });
+
   it('returns to Math.random when the seed is cleared', () => {
+    setGameSeed(7);
+    // Spy before clearing: setGameSeed(null) captures Math.random at call time
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.123);
     setGameSeed(null);
-    const v = gameRandom();
-    expect(v).toBeGreaterThanOrEqual(0);
-    expect(v).toBeLessThan(1);
+    expect(gameRandom()).toBe(0.123);
+    expect(random).toHaveBeenCalledTimes(1);
   });
 });
