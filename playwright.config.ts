@@ -46,8 +46,7 @@ export default defineConfig({
     { name: 'webgl-desktop-mouse', testMatch: /boot\.spec/, use: desktop }
   ],
   webServer: {
-    // npm (not pnpm) so CI, which only runs `npm ci`, can use the same config
-    command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${PORT} --strictPort`,
+    command: `pnpm run build && pnpm run preview --host 127.0.0.1 --port ${PORT} --strictPort`,
     url: `http://127.0.0.1:${PORT}/`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000

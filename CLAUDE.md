@@ -10,7 +10,7 @@ The full design spec (mechanics, tuning targets, UX details) lives in `cocktail_
 
 ## Commands
 
-The repo currently ships `package-lock.json` (npm); use `pnpm` for interactive development per user preference, but note CI (`.github/workflows/firebase-hosting-*.yml`) invokes `npm ci` / `npm run build` directly, so don't remove `package-lock.json` without updating those workflows.
+The repo uses pnpm only: `pnpm-lock.yaml` is the single lockfile and `package.json` pins the version via `packageManager` (Corepack or `pnpm/action-setup` pick it up). Don't add a `package-lock.json`.
 
 ```bash
 pnpm install        # install dependencies
@@ -31,11 +31,13 @@ Before committing, run `pnpm run format`, `pnpm run lint`, `pnpm test`, `pnpm ru
 
 Unit tests live next to their modules as `src/**/*.test.ts` and cover only pure logic (`spawnPicker`, `mergeRules`, `dangerTimer`, `drinks`, `SaveManager`, `ScoreManager`); keep game rules in small pure functions the Phaser classes call, so they stay testable without booting Phaser. `src/test/storage.ts` has a stub `localStorage` and a `SaveManager` singleton reset.
 
-**E2E suite** (`e2e/`, `playwright.config.ts`): Playwright drives the production build through the debug hook at 390×844 touch (`phone-touch`) and 1440×900 mouse (`desktop-mouse`); `webgl-*` projects re-run only `boot.spec.ts`. The gameplay projects launch Chromium with `--disable-webgl`, so Phaser picks its Canvas renderer: headless SwiftShader WebGL renders a busy board at ~2 fps. `@playwright/test` is pinned to 1.56.1 to match the preinstalled Chromium (`/opt/pw-browsers`); never run `playwright install`. Every on-canvas coordinate and every read of game internals lives in `e2e/support/game.ts` (driver) and `e2e/support/inPage.ts` (in-page helpers), so a layout or state refactor updates those two files, not the specs. Every test fails on any console error, page error or 4xx response. Detect launches with `getLaunchCount()`, never by counting drinks (merges and order checkouts remove them), and poll state with the `poll()` helper instead of fixed sleeps.
+**E2E suite** (`e2e/`, `playwright.config.ts`): Playwright drives the production build through the debug hook at 390×844 touch (`phone-touch`) and 1440×900 mouse (`desktop-mouse`); `webgl-*` projects re-run only `boot.spec.ts`. The gameplay projects launch Chromium with `--disable-webgl`, so Phaser picks its Canvas renderer: headless SwiftShader WebGL renders a busy board at ~2 fps. `@playwright/test` is pinned to 1.56.1 to match the preinstalled Chromium (`/opt/pw-browsers`); never run `playwright install` locally or in Claude sessions (the CI `e2e` job runs `pnpm exec playwright install --with-deps chromium` on the GitHub runner, which has no preinstalled browser). Every on-canvas coordinate and every read of game internals lives in `e2e/support/game.ts` (driver) and `e2e/support/inPage.ts` (in-page helpers), so a layout or state refactor updates those two files, not the specs. Every test fails on any console error, page error or 4xx response. Detect launches with `getLaunchCount()`, never by counting drinks (merges and order checkouts remove them), and poll state with the `poll()` helper instead of fixed sleeps.
 
 **Debug/test hook** (`src/debug.ts`): in `pnpm run dev`, or any build opened with `?debug=1`, `window.__COCKTAIL__` exposes `game`, `getScene()`, `getState()`, `getLaunchCount()` (drinks launched since page load, never lowered by merges or orders; works on any scene), `spawnDrink(level, x, y)`, `setScore(n)`, `forceGameOver()`, `setSeed(n | null)` (seeds the spawner/order RNG in `systems/spawnPicker.ts` and restarts a running game) and `toggleMatterDebug()` (also the `` ` `` key). Production without the flag never loads it. Keep it test-only: no in-game developer UI.
 
-Deployment is `firebase deploy --only hosting` after `pnpm run build` (see `firebase.json` / `.firebaserc`); the Firebase project is `fastorial` / site `fastorial-70d16`. GitHub Actions auto-deploy on merge/PR using npm.
+Deployment is `firebase deploy --only hosting` after `pnpm run build` (see `firebase.json` / `.firebaserc`); the Firebase project is `fastorial` / site `fastorial-70d16`. GitHub Actions auto-deploy on merge/PR using pnpm.
+
+**CI** (`.github/workflows/`): `ci.yml` runs on every `pull_request` (fork PRs included; read-only token, no secrets) and on pushes to `master`. Its `ci` job runs `pnpm install --frozen-lockfile`, `typecheck`, `lint`, `format:check`, `test` (Vitest) and `build`; a separate `e2e` job installs Playwright Chromium and runs `test:e2e`. The two `firebase-hosting-*.yml` workflows build with the same pnpm steps and deploy (PR preview channel for same-repo PRs, `live` on merge). Every `uses:` is pinned to a full commit SHA with a `# vX.Y.Z` comment, and every workflow declares minimal `permissions:`; keep both when adding steps. Dependabot (`.github/dependabot.yml`) bumps the pins and npm dependencies weekly.
 
 ## Architecture
 
