@@ -3,15 +3,8 @@ import { Drink } from '../entities/Drink';
 import { ScoreManager } from './ScoreManager';
 import { AudioManager } from './AudioManager';
 import { getDrinkByLevel } from '../config/drinks';
-import { GAME_CONFIG } from '../config/gameConfig';
+import { LAYOUT } from '../config/gameConfig';
 import { gameRandom, pickIntInclusive } from './spawnPicker';
-
-// Y-coordinates below are tuned against the original 1280-tall reference
-// canvas; rescale so ticket placement and the "on the table" check keep
-// their relative position on devices where GAME_CONFIG.HEIGHT has been
-// stretched taller (see gameConfig.ts).
-const scaleY = (referenceValue: number): number =>
-  Math.round((referenceValue / 1280) * GAME_CONFIG.HEIGHT);
 
 export interface ToGoOrder {
   id: string;
@@ -96,9 +89,8 @@ export class OrderManager {
   }
 
   private renderOrderTicket(order: ToGoOrder, slotIndex: number): void {
-    // Slots at X: 270 (Left ticket) and 450 (Right ticket), Y: 135
-    const slotX = slotIndex === 0 ? 280 : 440;
-    const slotY = scaleY(135);
+    const slotX = LAYOUT.ORDERS.SLOT_X[slotIndex];
+    const slotY = LAYOUT.ORDERS.TICKET_Y;
 
     const ticketGroup = this.scene.add.container(slotX, slotY);
 
@@ -189,7 +181,7 @@ export class OrderManager {
           !d.isMerging &&
           d.isDropped &&
           d.level === order.targetLevel &&
-          d.y < scaleY(800) // Must have travelled onto the table
+          d.y < LAYOUT.ORDERS.ON_TABLE_MAX_Y // Must have travelled onto the table
       );
 
       if (matchingDrink) {
@@ -205,8 +197,8 @@ export class OrderManager {
     order.isCompleted = true;
 
     const ticketView = this.ticketViews.get(order.id);
-    const targetX = slotIndex === 0 ? 280 : 440;
-    const targetY = scaleY(145);
+    const targetX = LAYOUT.ORDERS.SLOT_X[slotIndex];
+    const targetY = LAYOUT.ORDERS.CHECKOUT_Y;
 
     // 1. Show Green Checkmark on Ticket
     if (ticketView) {

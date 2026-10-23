@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from '../config/gameConfig';
+import { GAME_CONFIG, LAYOUT } from '../config/gameConfig';
 import { SaveManager } from '../../storage/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
 import { UIButton } from '../ui/components/UIButton';
@@ -12,12 +12,13 @@ export class MenuScene extends Phaser.Scene {
 
   public create(): void {
     const { WIDTH, HEIGHT } = GAME_CONFIG;
+    const { TITLE_Y, BEST_CARD, PLAY_BUTTON, TIP_Y } = LAYOUT.MENU;
 
     // Background
     this.add.image(WIDTH / 2, HEIGHT / 2, 'bg_tropical');
 
     // Title Logo Group
-    const titleContainer = this.add.container(WIDTH / 2, HEIGHT * 0.28);
+    const titleContainer = this.add.container(WIDTH / 2, TITLE_Y);
 
     // Glowing main cocktail illustration (Tier 5 Tropical Punch)
     const logoDrink = this.add.sprite(0, -60, 'drink_5');
@@ -73,9 +74,11 @@ export class MenuScene extends Phaser.Scene {
 
     // Best Score Card
     const bestScore = SaveManager.getInstance().getBestScore();
-    const bestCard = this.add.container(WIDTH / 2, HEIGHT * 0.54);
+    const bestCard = this.add.container(WIDTH / 2, BEST_CARD.Y);
 
-    const bestBg = this.add.sprite(0, 0, 'ui_card_bg').setDisplaySize(240, 76);
+    const bestBg = this.add
+      .sprite(0, 0, 'ui_card_bg')
+      .setDisplaySize(BEST_CARD.WIDTH, BEST_CARD.HEIGHT);
     const bestLabel = this.add
       .text(0, -18, 'BEST SCORE', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
@@ -97,10 +100,10 @@ export class MenuScene extends Phaser.Scene {
     bestCard.add([bestBg, bestLabel, bestVal]);
 
     // Play Button
-    const playBtn = new UIButton(this, WIDTH / 2, HEIGHT * 0.68, {
+    const playBtn = new UIButton(this, WIDTH / 2, PLAY_BUTTON.Y, {
       variant: 'primary',
-      width: 280,
-      height: 78,
+      width: PLAY_BUTTON.WIDTH,
+      height: PLAY_BUTTON.HEIGHT,
       text: 'PLAY NOW',
       label: 'Play now',
       textStyle: {
@@ -138,7 +141,7 @@ export class MenuScene extends Phaser.Scene {
 
     // How to play quick tip
     this.add
-      .text(WIDTH / 2, HEIGHT * 0.82, "Drop cocktails • Match pairs • Don't overflow!", {
+      .text(WIDTH / 2, TIP_Y, "Drop cocktails • Match pairs • Don't overflow!", {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '16px',
         color: '#cfcbe8',
@@ -152,15 +155,15 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createAudioControls(): void {
-    const { WIDTH } = GAME_CONFIG;
+    const { Y, SIZE, SOUND_X, MUSIC_X } = LAYOUT.MENU.AUDIO_BUTTONS;
     const iconStyle = {
       variant: 'icon' as const,
-      width: 48,
-      height: 48,
+      width: SIZE,
+      height: SIZE,
       textStyle: { fontSize: '22px' }
     };
 
-    new UIToggle(this, WIDTH - 110, 60, {
+    new UIToggle(this, SOUND_X, Y, {
       ...iconStyle,
       setting: SOUND_SETTING,
       onText: '🔊',
@@ -168,7 +171,7 @@ export class MenuScene extends Phaser.Scene {
       label: 'Sound effects'
     });
 
-    new UIToggle(this, WIDTH - 50, 60, {
+    new UIToggle(this, MUSIC_X, Y, {
       ...iconStyle,
       setting: MUSIC_SETTING,
       onText: '🎵',

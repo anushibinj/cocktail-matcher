@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from '../config/gameConfig';
+import { GAME_CONFIG, LAYOUT } from '../config/gameConfig';
 import { AudioManager } from '../systems/AudioManager';
 import { UIButton } from './components/UIButton';
 import { UIToggle, SettingBinding, SOUND_SETTING, MUSIC_SETTING } from './components/UIToggle';
@@ -31,23 +31,41 @@ export class PauseModal {
     this.container.setVisible(true);
 
     const { WIDTH, HEIGHT } = GAME_CONFIG;
+    const { CENTER_X, CENTER_Y } = LAYOUT.MODALS;
+    const {
+      CARD,
+      TITLE_Y,
+      HELP_BOX,
+      TOGGLE_Y,
+      SOUND_TOGGLE_X,
+      MUSIC_TOGGLE_X,
+      RESUME_BUTTON,
+      RESTART_Y,
+      MENU_Y
+    } = LAYOUT.MODALS.PAUSE;
 
     // 1. Dark Backdrop
     const backdrop = this.scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x0c081e, 0.82);
     backdrop.setInteractive();
 
     // 2. Modal Card Group
-    const cardGroup = this.scene.add.container(WIDTH / 2, HEIGHT / 2);
+    const cardGroup = this.scene.add.container(CENTER_X, CENTER_Y);
 
     const cardBg = this.scene.add.graphics();
     cardBg.fillStyle(0x191432, 0.95);
-    cardBg.fillRoundedRect(-240, -250, 480, 500, 24);
+    cardBg.fillRoundedRect(-CARD.WIDTH / 2, -CARD.HEIGHT / 2, CARD.WIDTH, CARD.HEIGHT, CARD.RADIUS);
     cardBg.lineStyle(3, 0x00b4d8, 0.8);
-    cardBg.strokeRoundedRect(-240, -250, 480, 500, 24);
+    cardBg.strokeRoundedRect(
+      -CARD.WIDTH / 2,
+      -CARD.HEIGHT / 2,
+      CARD.WIDTH,
+      CARD.HEIGHT,
+      CARD.RADIUS
+    );
 
     // Title
     const titleText = this.scene.add
-      .text(0, -200, 'GAME PAUSED', {
+      .text(0, TITLE_Y, 'GAME PAUSED', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '34px',
         fontStyle: 'bold',
@@ -60,9 +78,21 @@ export class PauseModal {
     // How to Play box
     const helpBg = this.scene.add.graphics();
     helpBg.fillStyle(0x231d42, 0.8);
-    helpBg.fillRoundedRect(-200, -150, 400, 110, 12);
+    helpBg.fillRoundedRect(
+      HELP_BOX.X,
+      HELP_BOX.Y,
+      HELP_BOX.WIDTH,
+      HELP_BOX.HEIGHT,
+      HELP_BOX.RADIUS
+    );
     helpBg.lineStyle(1, 0xffffff, 0.15);
-    helpBg.strokeRoundedRect(-200, -150, 400, 110, 12);
+    helpBg.strokeRoundedRect(
+      HELP_BOX.X,
+      HELP_BOX.Y,
+      HELP_BOX.WIDTH,
+      HELP_BOX.HEIGHT,
+      HELP_BOX.RADIUS
+    );
 
     const helpTitle = this.scene.add
       .text(0, -135, 'HOW TO PLAY', {
@@ -89,14 +119,14 @@ export class PauseModal {
       .setOrigin(0.5);
 
     // Sound & Music Toggles Row
-    const soundToggle = this.createToggleRow(-100, -10, 'Sound FX', SOUND_SETTING);
-    const musicToggle = this.createToggleRow(100, -10, 'Music', MUSIC_SETTING);
+    const soundToggle = this.createToggleRow(SOUND_TOGGLE_X, TOGGLE_Y, 'Sound FX', SOUND_SETTING);
+    const musicToggle = this.createToggleRow(MUSIC_TOGGLE_X, TOGGLE_Y, 'Music', MUSIC_SETTING);
 
     // Resume Button
-    const resumeBtn = new UIButton(this.scene, 0, 75, {
+    const resumeBtn = new UIButton(this.scene, 0, RESUME_BUTTON.Y, {
       variant: 'primary',
-      width: 240,
-      height: 60,
+      width: RESUME_BUTTON.WIDTH,
+      height: RESUME_BUTTON.HEIGHT,
       text: 'RESUME',
       label: 'Resume'
     });
@@ -106,7 +136,7 @@ export class PauseModal {
     });
 
     // Restart Button
-    const restartBtn = new UIButton(this.scene, 0, 145, {
+    const restartBtn = new UIButton(this.scene, 0, RESTART_Y, {
       variant: 'secondary',
       text: '🔄 Restart Game',
       label: 'Restart game',
@@ -119,7 +149,7 @@ export class PauseModal {
     });
 
     // Main Menu Button
-    const menuBtn = new UIButton(this.scene, 0, 195, {
+    const menuBtn = new UIButton(this.scene, 0, MENU_Y, {
       variant: 'secondary',
       text: 'Main Menu'
     });

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from '../config/gameConfig';
+import { GAME_CONFIG, LAYOUT } from '../config/gameConfig';
 import { AudioManager } from '../systems/AudioManager';
 import { UIButton } from './components/UIButton';
 
@@ -23,24 +23,32 @@ export class GameOverModal {
     this.container.setVisible(true);
 
     const { WIDTH, HEIGHT } = GAME_CONFIG;
+    const { CENTER_X, CENTER_Y } = LAYOUT.MODALS;
+    const { CARD, TITLE_Y, PLAY_AGAIN_BUTTON, MENU_Y } = LAYOUT.MODALS.GAME_OVER;
 
     // 1. Dark Backdrop
     const backdrop = this.scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x0c081e, 0.82);
     backdrop.setInteractive(); // Blocks input behind
 
     // 2. Modal Card Container (for scale animation)
-    const cardGroup = this.scene.add.container(WIDTH / 2, HEIGHT / 2);
+    const cardGroup = this.scene.add.container(CENTER_X, CENTER_Y);
 
     // Modal Card Background
     const cardBg = this.scene.add.graphics();
     cardBg.fillStyle(0x191432, 0.95);
-    cardBg.fillRoundedRect(-240, -220, 480, 440, 24);
+    cardBg.fillRoundedRect(-CARD.WIDTH / 2, -CARD.HEIGHT / 2, CARD.WIDTH, CARD.HEIGHT, CARD.RADIUS);
     cardBg.lineStyle(3, 0xff006e, 0.8);
-    cardBg.strokeRoundedRect(-240, -220, 480, 440, 24);
+    cardBg.strokeRoundedRect(
+      -CARD.WIDTH / 2,
+      -CARD.HEIGHT / 2,
+      CARD.WIDTH,
+      CARD.HEIGHT,
+      CARD.RADIUS
+    );
 
     // Header Title
     const titleText = this.scene.add
-      .text(0, -165, 'GAME OVER', {
+      .text(0, TITLE_Y, 'GAME OVER', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '40px',
         fontStyle: 'bold',
@@ -105,10 +113,10 @@ export class GameOverModal {
       .setOrigin(0.5);
 
     // Play Again Button
-    const playAgainBtn = new UIButton(this.scene, 0, 95, {
+    const playAgainBtn = new UIButton(this.scene, 0, PLAY_AGAIN_BUTTON.Y, {
       variant: 'primary',
-      width: 260,
-      height: 68,
+      width: PLAY_AGAIN_BUTTON.WIDTH,
+      height: PLAY_AGAIN_BUTTON.HEIGHT,
       text: 'PLAY AGAIN',
       label: 'Play again',
       textStyle: { fontSize: '22px' }
@@ -120,7 +128,7 @@ export class GameOverModal {
     });
 
     // Main Menu Button
-    const menuBtn = new UIButton(this.scene, 0, 170, {
+    const menuBtn = new UIButton(this.scene, 0, MENU_Y, {
       variant: 'secondary',
       text: 'Main Menu',
       textStyle: { fontSize: '18px' }
