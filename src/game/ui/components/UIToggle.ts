@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SaveManager, SETTINGS_CHANGED_EVENT } from '../../../storage/SaveManager';
+import { SaveManager } from '../../../storage/SaveManager';
 import { AudioManager } from '../../systems/AudioManager';
 import { UIButton, UIButtonConfig } from './UIButton';
 
@@ -10,7 +10,7 @@ export interface SettingBinding {
 }
 
 // Writes go through AudioManager so the gains change too; SaveManager then
-// emits SETTINGS_CHANGED_EVENT and every toggle refreshes.
+// notifies its settings listeners and every toggle refreshes.
 export const SOUND_SETTING: SettingBinding = {
   read: () => SaveManager.getInstance().getSoundEnabled(),
   write: (value) => AudioManager.getInstance().setSoundEnabled(value)
@@ -52,11 +52,8 @@ export class UIToggle extends UIButton {
 
     this.on(UIButton.EVENTS.ACTIVATE, () => this.setting.write(!this.setting.read()));
 
-    const events = SaveManager.getInstance().events;
-    events.on(SETTINGS_CHANGED_EVENT, this.refresh, this);
-    this.once(Phaser.GameObjects.Events.DESTROY, () => {
-      events.off(SETTINGS_CHANGED_EVENT, this.refresh, this);
-    });
+    const unsubscribe = SaveManager.getInstance().onSettingsChanged(() => this.refresh());
+    this.once(Phaser.GameObjects.Events.DESTROY, unsubscribe);
   }
 
   public get value(): boolean {

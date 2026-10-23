@@ -1,15 +1,12 @@
-import Phaser from 'phaser';
 import { SaveData } from '../types/game';
 import { GAME_CONFIG } from '../game/config/gameConfig';
-
-/** Emitted on SaveManager.events after the sound or music setting changes. */
-export const SETTINGS_CHANGED_EVENT = 'settingschanged';
 
 export class SaveManager {
   private static instance: SaveManager;
   private data: SaveData;
-  /** Lets every on-screen toggle refresh from one source of truth. */
-  public readonly events = new Phaser.Events.EventEmitter();
+  // Lets every on-screen toggle refresh from one source of truth. A plain
+  // set rather than a Phaser emitter keeps this module loadable in Node tests.
+  private settingsListeners = new Set<() => void>();
 
   private constructor() {
     this.data = this.load();
@@ -72,6 +69,16 @@ export class SaveManager {
     return false;
   }
 
+  /** Calls `listener` after the sound or music setting changes; returns an unsubscribe. */
+  public onSettingsChanged(listener: () => void): () => void {
+    this.settingsListeners.add(listener);
+    return () => this.settingsListeners.delete(listener);
+  }
+
+  private emitSettingsChanged(): void {
+    this.settingsListeners.forEach((listener) => listener());
+  }
+
   public getSoundEnabled(): boolean {
     return this.data.soundEnabled;
   }
@@ -79,7 +86,7 @@ export class SaveManager {
   public setSoundEnabled(enabled: boolean): void {
     this.data.soundEnabled = enabled;
     this.save();
-    this.events.emit(SETTINGS_CHANGED_EVENT);
+    this.emitSettingsChanged();
   }
 
   public getMusicEnabled(): boolean {
@@ -89,7 +96,7 @@ export class SaveManager {
   public setMusicEnabled(enabled: boolean): void {
     this.data.musicEnabled = enabled;
     this.save();
-    this.events.emit(SETTINGS_CHANGED_EVENT);
+    this.emitSettingsChanged();
   }
 
   public recordGamePlayed(highestLevel: number): void {
