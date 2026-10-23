@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from '../config/gameConfig';
+import { GAME_CONFIG, LAYOUT } from '../config/gameConfig';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../../storage/SaveManager';
 
@@ -33,23 +33,41 @@ export class PauseModal {
     this.container.setVisible(true);
 
     const { WIDTH, HEIGHT } = GAME_CONFIG;
+    const { CENTER_X, CENTER_Y } = LAYOUT.MODALS;
+    const {
+      CARD,
+      TITLE_Y,
+      HELP_BOX,
+      TOGGLE_Y,
+      SOUND_TOGGLE_X,
+      MUSIC_TOGGLE_X,
+      RESUME_BUTTON,
+      RESTART_Y,
+      MENU_Y
+    } = LAYOUT.MODALS.PAUSE;
 
     // 1. Dark Backdrop
     const backdrop = this.scene.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x0c081e, 0.82);
     backdrop.setInteractive();
 
     // 2. Modal Card Group
-    const cardGroup = this.scene.add.container(WIDTH / 2, HEIGHT / 2);
+    const cardGroup = this.scene.add.container(CENTER_X, CENTER_Y);
 
     const cardBg = this.scene.add.graphics();
     cardBg.fillStyle(0x191432, 0.95);
-    cardBg.fillRoundedRect(-240, -250, 480, 500, 24);
+    cardBg.fillRoundedRect(-CARD.WIDTH / 2, -CARD.HEIGHT / 2, CARD.WIDTH, CARD.HEIGHT, CARD.RADIUS);
     cardBg.lineStyle(3, 0x00b4d8, 0.8);
-    cardBg.strokeRoundedRect(-240, -250, 480, 500, 24);
+    cardBg.strokeRoundedRect(
+      -CARD.WIDTH / 2,
+      -CARD.HEIGHT / 2,
+      CARD.WIDTH,
+      CARD.HEIGHT,
+      CARD.RADIUS
+    );
 
     // Title
     const titleText = this.scene.add
-      .text(0, -200, 'GAME PAUSED', {
+      .text(0, TITLE_Y, 'GAME PAUSED', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '34px',
         fontStyle: 'bold',
@@ -62,9 +80,21 @@ export class PauseModal {
     // How to Play box
     const helpBg = this.scene.add.graphics();
     helpBg.fillStyle(0x231d42, 0.8);
-    helpBg.fillRoundedRect(-200, -150, 400, 110, 12);
+    helpBg.fillRoundedRect(
+      HELP_BOX.X,
+      HELP_BOX.Y,
+      HELP_BOX.WIDTH,
+      HELP_BOX.HEIGHT,
+      HELP_BOX.RADIUS
+    );
     helpBg.lineStyle(1, 0xffffff, 0.15);
-    helpBg.strokeRoundedRect(-200, -150, 400, 110, 12);
+    helpBg.strokeRoundedRect(
+      HELP_BOX.X,
+      HELP_BOX.Y,
+      HELP_BOX.WIDTH,
+      HELP_BOX.HEIGHT,
+      HELP_BOX.RADIUS
+    );
 
     const helpTitle = this.scene.add
       .text(0, -135, 'HOW TO PLAY', {
@@ -92,8 +122,8 @@ export class PauseModal {
 
     // Sound & Music Toggles Row
     const soundToggle = this.createToggleRow(
-      -100,
-      -10,
+      SOUND_TOGGLE_X,
+      TOGGLE_Y,
       'Sound FX',
       SaveManager.getInstance().getSoundEnabled(),
       (val) => {
@@ -103,8 +133,8 @@ export class PauseModal {
     );
 
     const musicToggle = this.createToggleRow(
-      100,
-      -10,
+      MUSIC_TOGGLE_X,
+      TOGGLE_Y,
       'Music',
       SaveManager.getInstance().getMusicEnabled(),
       (val) => {
@@ -114,10 +144,12 @@ export class PauseModal {
     );
 
     // Resume Button
-    const resumeBtn = this.scene.add.sprite(0, 75, 'ui_btn_primary').setDisplaySize(240, 60);
+    const resumeBtn = this.scene.add
+      .sprite(0, RESUME_BUTTON.Y, 'ui_btn_primary')
+      .setDisplaySize(RESUME_BUTTON.WIDTH, RESUME_BUTTON.HEIGHT);
     resumeBtn.setInteractive({ useHandCursor: true });
     const resumeText = this.scene.add
-      .text(0, 75, 'RESUME', {
+      .text(0, RESUME_BUTTON.Y, 'RESUME', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '20px',
         fontStyle: 'bold',
@@ -133,7 +165,7 @@ export class PauseModal {
 
     // Restart Button
     const restartBtn = this.scene.add
-      .text(0, 145, '🔄 Restart Game', {
+      .text(0, RESTART_Y, '🔄 Restart Game', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '18px',
         fontStyle: 'bold',
@@ -151,7 +183,7 @@ export class PauseModal {
 
     // Main Menu Button
     const menuBtn = this.scene.add
-      .text(0, 195, 'Main Menu', {
+      .text(0, MENU_Y, 'Main Menu', {
         fontFamily: 'Segoe UI, system-ui, sans-serif',
         fontSize: '16px',
         color: '#a0a0c0'
