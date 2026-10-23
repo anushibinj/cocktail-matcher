@@ -29,3 +29,10 @@ test.describe('boot', () => {
     expect(scripts.filter((u) => /debug/i.test(u))).toEqual([]);
   });
 });
+
+test('boots with the renderer this project expects', async ({ game }, testInfo) => {
+  await game.open();
+  const type = await game.page.evaluate(() => window.__COCKTAIL__!.game.renderer.type);
+  // Phaser.CANVAS = 1, Phaser.WEBGL = 2
+  expect(type).toBe(testInfo.project.name.startsWith('webgl') ? 2 : 1);
+});

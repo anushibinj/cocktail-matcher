@@ -48,17 +48,29 @@ test('pause freezes drinks, clock and merges for 2 s; resume continues without a
   expect(after.drinks).toHaveLength(5);
   expect(await game.freeze()).toMatchObject({ worldEnabled: false, clockPaused: true });
 
-  // Resume: motion continues from the frozen positions, and the pair merges
+  // Resume: record the risers in the first frame the world runs again
+  await game.page.evaluate(() => {
+    const scene = window.__COCKTAIL__!.getScene()!;
+    const w = window as unknown as { __firstResumed?: { y: number }[] };
+    const onUpdate = () => {
+      if (!scene.matter.world.enabled) return;
+      scene.events.off('postupdate', onUpdate);
+      w.__firstResumed = window.__COCKTAIL__!.getState().drinks.slice(0, 3);
+    };
+    scene.events.on('postupdate', onUpdate);
+  });
   await game.tap(game.ui.pauseResume);
   await game.waitForNoModal();
-  await poll(async () => (await game.freeze()).worldEnabled).toBe(true);
-  const resumed = await game.drinks();
-  for (const d of resumed.slice(0, 3)) {
-    const was = before.drinks.find(
-      (b) => b.x === d.x || (Math.abs(b.x - d.x) < 30 && b.level === d.level)
-    )!;
-    expect(Math.abs(d.y - was.y), 'no burst of accumulated physics on resume').toBeLessThan(60);
-  }
+  const firstFrame = await game.page.evaluate(
+    () => (window as unknown as { __firstResumed?: { y: number }[] }).__firstResumed
+  );
+  expect(firstFrame).toHaveLength(3);
+  firstFrame!.forEach((d, i) => {
+    // One physics step moves a rising drink a few px; a burst of the steps
+    // "owed" for the pause would move it much further
+    expect(Math.abs(d.y - before.drinks[i].y), 'no burst on resume').toBeLessThan(20);
+  });
+  await poll(async () => (await game.drinks())[0].y).toBeLessThan(before.drinks[0].y - 5);
   await poll(() => game.score()).toBeGreaterThan(before.score);
   expect(await game.freeze()).toMatchObject({ clockPaused: false, isGameActive: true });
 });

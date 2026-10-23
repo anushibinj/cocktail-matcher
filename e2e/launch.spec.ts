@@ -98,3 +98,28 @@ test('mouse: a stale arm from a lost mouseup does not launch from a HUD tap', as
   // A normal click on the board still launches
   await game.launchAt(360);
 });
+
+test('HUD toggles, Pause, Resume and Restart Game launch nothing', async ({ game }) => {
+  const start = await game.launches();
+  const icons = await game.hudIcons();
+
+  await game.tap(game.ui.hudSound);
+  await poll(async () => (await game.hudIcons()).sound).not.toBe(icons.sound);
+  await game.tap(game.ui.hudMusic);
+  await poll(async () => (await game.hudIcons()).music).not.toBe(icons.music);
+
+  await game.pauseViaHud();
+  await game.tap(game.ui.pauseResume);
+  await game.waitForNoModal();
+  await game.waitReadyToLaunch();
+
+  await game.pauseViaHud();
+  await game.tap(game.ui.pauseRestart);
+  await game.waitForNoModal();
+  await game.waitReadyToLaunch();
+
+  await game.waitFrames(10);
+  expect(await game.launches()).toBe(start);
+  // The board itself still launches
+  await game.launchAt(360);
+});

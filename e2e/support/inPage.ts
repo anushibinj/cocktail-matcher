@@ -99,11 +99,18 @@ export function installE2eHelpers(): void {
           return b.contains(x, y);
         });
         if (!hits.length) continue;
-        const sorted = input.sortGameObjects(
-          hits as Phaser.GameObjects.GameObject[],
-          input.activePointer
-        );
-        sorted[0].emit('pointerdown', input.activePointer, 0, 0, { stopPropagation() {} });
+        // Topmost = last in draw order. Walk the display list ourselves:
+        // Phaser's sortGameObjects() uses the last frame's render list, which
+        // lacks a modal created this frame.
+        scene.sys.depthSort();
+        const order: Obj[] = [];
+        const walk = (o: Obj) => {
+          order.push(o);
+          o.list?.forEach(walk);
+        };
+        (scene.children.list as Obj[]).forEach(walk);
+        const top = hits.reduce((a, b) => (order.indexOf(b) > order.indexOf(a) ? b : a));
+        top.emit('pointerdown', input.activePointer, 0, 0, { stopPropagation() {} });
         return true;
       }
       return false;

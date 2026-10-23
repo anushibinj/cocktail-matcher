@@ -4,16 +4,21 @@ import { defineConfig, devices } from '@playwright/test';
 // `vite preview`; specs open it with `?debug=1` to get window.__COCKTAIL__.
 const PORT = 4173;
 
+const phone = {
+  ...devices['Desktop Chrome'],
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: true
+};
+const desktop = { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } };
+
 export default defineConfig({
   testDir: './e2e',
-  // Software-WebGL Phaser is CPU heavy; more workers than this just starve each other.
   workers: process.env.CI ? 2 : 3,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,
-  // Swiftshader renders the game at ~6-10 fps under parallel load, and every
-  // input event waits for a frame, so a scenario takes many seconds
-  timeout: 90_000,
+  timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
@@ -21,23 +26,24 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure'
   },
+  // Headless Chromium has no GPU, and SwiftShader WebGL renders a busy board
+  // at ~2 fps, which makes every input and animation crawl. The gameplay
+  // projects therefore disable WebGL so Phaser.AUTO picks its Canvas renderer
+  // (~60 fps). Game logic, input and lifecycle are renderer-independent; the
+  // webgl-* projects still boot the real WebGL renderer for the console checks.
   projects: [
     {
       name: 'phone-touch',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 390, height: 844 },
-        hasTouch: true,
-        isMobile: true
-      }
+      testIgnore: /webgl/,
+      use: { ...phone, launchOptions: { args: ['--disable-webgl'] } }
     },
     {
       name: 'desktop-mouse',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1440, height: 900 }
-      }
-    }
+      testIgnore: /webgl/,
+      use: { ...desktop, launchOptions: { args: ['--disable-webgl'] } }
+    },
+    { name: 'webgl-phone-touch', testMatch: /boot\.spec/, use: phone },
+    { name: 'webgl-desktop-mouse', testMatch: /boot\.spec/, use: desktop }
   ],
   webServer: {
     // npm (not pnpm) so CI, which only runs `npm ci`, can use the same config
