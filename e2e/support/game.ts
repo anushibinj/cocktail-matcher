@@ -233,7 +233,8 @@ export class GameDriver {
     return this.page.evaluate(() => {
       const s = window.__COCKTAIL__!.getScene()!['spawner'];
       return {
-        isEnabled: s['isEnabled'],
+        // The spawner has no enable flag since ARCH002; input is live while playing
+        isEnabled: s['isPlaying'](),
         isCoolingDown: s['isCoolingDown'],
         armedPointerId: s['armedPointerId'],
         previewVisible: s['previewSprite'].visible,
@@ -251,7 +252,7 @@ export class GameDriver {
         worldEnabled: scene.matter.world.enabled,
         clockPaused: scene.time.paused,
         shaking: scene.cameras.main.shakeEffect.isRunning,
-        isGameActive: scene['isGameActive']
+        isGameActive: scene.isPlaying()
       };
     });
   }

@@ -8,10 +8,10 @@ import { canMerge } from './mergeRules';
 export class MergeManager {
   private scene: Phaser.Scene;
   private scoreManager: ScoreManager;
+  private isPlaying: () => boolean;
   private onDrinkCreated?: (drink: Drink) => void;
   private onDrinkRemoved?: (drink: Drink) => void;
   private pendingMerges: Set<string> = new Set();
-  private isEnabled: boolean = true;
 
   // Pooled merge FX: created once per scene and re-fired with explode(), so
   // particles from one burst live out their lifespan instead of being cut
@@ -25,11 +25,13 @@ export class MergeManager {
   constructor(
     scene: Phaser.Scene,
     scoreManager: ScoreManager,
+    isPlaying: () => boolean,
     onDrinkCreated?: (drink: Drink) => void,
     onDrinkRemoved?: (drink: Drink) => void
   ) {
     this.scene = scene;
     this.scoreManager = scoreManager;
+    this.isPlaying = isPlaying;
     this.onDrinkCreated = onDrinkCreated;
     this.onDrinkRemoved = onDrinkRemoved;
 
@@ -72,7 +74,7 @@ export class MergeManager {
       'collisionstart',
       (event: Phaser.Physics.Matter.Events.CollisionStartEvent) => {
         // Paused or game over: no merges, score or collision audio
-        if (!this.isEnabled) return;
+        if (!this.isPlaying()) return;
 
         event.pairs.forEach((pair) => {
           const bodyA = pair.bodyA;
@@ -111,10 +113,6 @@ export class MergeManager {
         });
       }
     );
-  }
-
-  public setEnabled(enabled: boolean): void {
-    this.isEnabled = enabled;
   }
 
   private handleDrinkCollision(d1: Drink, d2: Drink): void {

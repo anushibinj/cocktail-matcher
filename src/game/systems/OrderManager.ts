@@ -17,11 +17,14 @@ export interface ToGoOrder {
 export class OrderManager {
   private scene: Phaser.Scene;
   private scoreManager: ScoreManager;
+  private isPlaying: () => boolean;
   private activeOrders: ToGoOrder[] = [];
   private orderCounter: number = 101;
   private container: Phaser.GameObjects.Container;
   private ticketViews: Map<string, Phaser.GameObjects.Container> = new Map();
   private onOrderFulfilled?: (order: ToGoOrder, drink: Drink) => void;
+  // A checkout animation is in flight; one at a time. Not run state: the
+  // scene's phase freezes or cancels the checkout itself.
   private isCheckingOut: boolean = false;
   // In-flight checkout animations and the drinks flying to a ticket, so a
   // restart can cancel them before their onComplete scores into a new game
@@ -33,10 +36,12 @@ export class OrderManager {
   constructor(
     scene: Phaser.Scene,
     scoreManager: ScoreManager,
+    isPlaying: () => boolean,
     onOrderFulfilled?: (order: ToGoOrder, drink: Drink) => void
   ) {
     this.scene = scene;
     this.scoreManager = scoreManager;
+    this.isPlaying = isPlaying;
     this.onOrderFulfilled = onOrderFulfilled;
     this.container = this.scene.add.container(0, 0);
     this.container.setDepth(20);
@@ -168,7 +173,7 @@ export class OrderManager {
 
   // Check if any active drink on the table satisfies an order
   public checkForMatchingOrders(droppedDrinks: Drink[]): boolean {
-    if (this.isCheckingOut) return false;
+    if (this.isCheckingOut || !this.isPlaying()) return false;
 
     for (let slotIndex = 0; slotIndex < this.activeOrders.length; slotIndex++) {
       const order = this.activeOrders[slotIndex];

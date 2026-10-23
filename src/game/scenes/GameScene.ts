@@ -12,6 +12,12 @@ import { GameOverModal } from '../ui/GameOverModal';
 import { PauseModal } from '../ui/PauseModal';
 import { SaveManager } from '../../storage/SaveManager';
 
+/**
+ * The run's single source of truth. Only setPhase() changes it, and it
+ * applies every side effect (physics, clock, tweens, input) in one place.
+ */
+export type GamePhase = 'playing' | 'paused' | 'gameOver' | 'exiting';
+
 export class GameScene extends Phaser.Scene {
   private board!: Board;
   private spawner!: DrinkSpawner;
@@ -23,7 +29,7 @@ export class GameScene extends Phaser.Scene {
   private gameOverModal!: GameOverModal;
   private pauseModal!: PauseModal;
   private droppedDrinks: Drink[] = [];
-  private isGameActive: boolean = true;
+  private phase: GamePhase = 'playing';
   private highestDrinkThisGame: number = 0;
   // Gameplay tweens paused by freezeGameplay(), resumed by unfreezeGameplay()
   private frozenTweens: Phaser.Tweens.Tween[] = [];
@@ -35,13 +41,9 @@ export class GameScene extends Phaser.Scene {
   public create(): void {
     const { WIDTH, HEIGHT } = GAME_CONFIG;
 
-    this.isGameActive = true;
     this.droppedDrinks = [];
     this.highestDrinkThisGame = 0;
     this.frozenTweens = [];
-    // The scene clock outlives a Main Menu round trip, so clear a pause
-    // left over from the previous visit's game over or pause modal.
-    this.time.paused = false;
 
     // 1. Background
     this.add.image(WIDTH / 2, HEIGHT / 2, 'bg_tropical');
@@ -60,6 +62,7 @@ export class GameScene extends Phaser.Scene {
     this.mergeManager = new MergeManager(
       this,
       this.scoreManager,
+      () => this.isPlaying(),
       (newDrink: Drink) => {
         this.droppedDrinks.push(newDrink);
         if (newDrink.level > this.highestDrinkThisGame) {
@@ -75,18 +78,27 @@ export class GameScene extends Phaser.Scene {
     );
 
     // 5. To-Go Orders Manager (Hanging tickets at top)
-    this.orderManager = new OrderManager(this, this.scoreManager, (_order, drink) => {
-      const idx = this.droppedDrinks.indexOf(drink);
-      if (idx !== -1) {
-        this.droppedDrinks.splice(idx, 1);
+    this.orderManager = new OrderManager(
+      this,
+      this.scoreManager,
+      () => this.isPlaying(),
+      (_order, drink) => {
+        const idx = this.droppedDrinks.indexOf(drink);
+        if (idx !== -1) {
+          this.droppedDrinks.splice(idx, 1);
+        }
       }
-    });
+    );
     this.orderManager.init();
 
     // 6. Game Over Manager
-    this.gameOverManager = new GameOverManager(this.board, () => {
-      this.handleGameOver();
-    });
+    this.gameOverManager = new GameOverManager(
+      this.board,
+      () => this.isPlaying(),
+      () => {
+        this.handleGameOver();
+      }
+    );
 
     // 7. HUD
     this.hud = new HUD(this, () => {
@@ -108,14 +120,23 @@ export class GameScene extends Phaser.Scene {
     );
 
     // 9. Drink Spawner
-    this.spawner = new DrinkSpawner(this, undefined, (droppedDrink) => {
-      this.droppedDrinks.push(droppedDrink);
-      if (droppedDrink.level > this.highestDrinkThisGame) {
-        this.highestDrinkThisGame = droppedDrink.level;
+    this.spawner = new DrinkSpawner(
+      this,
+      () => this.isPlaying(),
+      undefined,
+      (droppedDrink) => {
+        this.droppedDrinks.push(droppedDrink);
+        if (droppedDrink.level > this.highestDrinkThisGame) {
+          this.highestDrinkThisGame = droppedDrink.level;
+        }
       }
-    });
+    );
 
     this.spawner.init();
+
+    // The scene clock outlives a Main Menu round trip, so this also clears a
+    // pause left over from the previous visit's game over or pause modal.
+    this.setPhase('playing');
 
     // Auto-pause when the tab or app goes to the background mid-game
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.handleHidden, this);
@@ -125,13 +146,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleHidden(): void {
-    if (this.isGameActive) {
+    if (this.isPlaying()) {
       this.handlePause();
     }
   }
 
+  /** Predicate handed to systems so they never keep their own enable flag. */
+  public isPlaying(): boolean {
+    return this.phase === 'playing';
+  }
+
+  /**
+   * The only place run state changes. Leaving 'playing' freezes physics,
+   * the clock, merges and running tweens and disarms input; entering it
+   * undoes that and ends a launch cooldown a pause left pending.
+   */
+  private setPhase(next: GamePhase): void {
+    this.phase = next;
+    switch (next) {
+      case 'playing':
+        this.unfreezeGameplay();
+        // No-op after a restart, whose spawner.reset() already cancelled it
+        this.spawner.finishPendingCooldown();
+        break;
+      case 'paused':
+      case 'gameOver':
+      case 'exiting':
+        this.freezeGameplay();
+        break;
+    }
+    this.spawner.applyPhase();
+  }
+
   public update(_time: number, delta: number): void {
-    if (!this.isGameActive) return;
+    if (!this.isPlaying()) return;
 
     // Filter out destroyed or inactive drinks
     this.droppedDrinks = this.droppedDrinks.filter((d) => d && d.active && !d.isMerging);
@@ -144,10 +192,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleGameOver(): void {
-    this.isGameActive = false;
     // Freeze before reading the score so no late merge or checkout changes it
-    this.freezeGameplay();
-    this.spawner.setEnabled(false);
+    this.setPhase('gameOver');
 
     const finalScore = this.scoreManager.getScore();
     const bestScore = this.scoreManager.getBestScore();
@@ -158,17 +204,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePause(): void {
-    this.isGameActive = false;
-    this.freezeGameplay();
-    this.spawner.setEnabled(false);
+    this.setPhase('paused');
     this.pauseModal.show();
   }
 
   private resumeGame(): void {
-    this.unfreezeGameplay();
-    this.isGameActive = true;
-    this.spawner.setEnabled(true);
-    this.spawner.finishPendingCooldown();
+    this.setPhase('playing');
   }
 
   /**
@@ -180,7 +221,6 @@ export class GameScene extends Phaser.Scene {
     if (!this.matter.world.enabled) return;
     this.matter.world.pause();
     this.time.paused = true;
-    this.mergeManager.setEnabled(false);
     // A merge shake would otherwise play out under the modal, shaking it too
     this.cameras.main.shakeEffect.reset();
     this.frozenTweens = this.tweens.getTweens().filter((t) => t.isPlaying());
@@ -192,9 +232,16 @@ export class GameScene extends Phaser.Scene {
       if (!t.isDestroyed()) t.resume();
     });
     this.frozenTweens = [];
-    this.mergeManager.setEnabled(true);
     this.time.paused = false;
-    this.matter.world.resume();
+    // Only resume a paused world. resume() resets runner.timeLastTick, and on
+    // a world that hasn't stepped yet (the setPhase('playing') in create())
+    // the first step then sees a negative frame delta. That poisons Matter's
+    // frame-delta smoothing with NaN until its 100-frame history flushes, so
+    // no body moves for 100 frames (~1.7 s at 60 fps, far longer on slow
+    // devices).
+    if (!this.matter.world.enabled) {
+      this.matter.world.resume();
+    }
   }
 
   private restartGame(): void {
@@ -210,7 +257,6 @@ export class GameScene extends Phaser.Scene {
     this.droppedDrinks = [];
     this.highestDrinkThisGame = 0;
 
-    this.isGameActive = true;
     this.scoreManager.reset();
     this.orderManager.reset();
     this.gameOverManager.reset();
@@ -224,10 +270,11 @@ export class GameScene extends Phaser.Scene {
       if (this.tweens.has(t) && t.isActive()) t.complete();
     });
     this.frozenTweens = [];
-    this.unfreezeGameplay();
+    this.setPhase('playing');
   }
 
   private goToMenu(): void {
+    this.setPhase('exiting');
     for (const drink of this.droppedDrinks) {
       if (drink && drink.body) {
         this.matter.world.remove(drink.body);
@@ -258,13 +305,15 @@ export class GameScene extends Phaser.Scene {
 
   /** Read-only snapshot of run state for tests. */
   public debugGetState(): {
+    phase: GamePhase;
     isGameActive: boolean;
     score: number;
     bestScore: number;
     drinks: { level: number; x: number; y: number }[];
   } {
     return {
-      isGameActive: this.isGameActive,
+      phase: this.phase,
+      isGameActive: this.isPlaying(),
       score: this.scoreManager.getScore(),
       bestScore: this.scoreManager.getBestScore(),
       drinks: this.droppedDrinks
@@ -275,7 +324,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Ends the current run immediately, as if the danger timer had expired. */
   public debugForceGameOver(): void {
-    if (this.isGameActive) {
+    if (this.isPlaying()) {
       this.handleGameOver();
     }
   }
